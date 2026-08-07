@@ -1,0 +1,174 @@
+const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
+async function initDb() {
+  const host = process.env.DB_HOST || 'localhost';
+  const port = parseInt(process.env.DB_PORT || '3306');
+  const user = process.env.DB_USER || 'root';
+  const password = process.env.DB_PASSWORD || '';
+  const dbName = process.env.DB_NAME || 'Hotel_Management_System';
+
+  console.log(`Connecting to MySQL at ${host}:${port} as ${user}...`);
+
+  try {
+    const connection = await mysql.createConnection({
+      host,
+      port,
+      user,
+      password,
+      multipleStatements: true
+    });
+
+    console.log(`Ensuring database '${dbName}' exists...`);
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
+    await connection.changeUser({ database: dbName });
+
+    // Fix Error 194 (Tablespace is missing) by discarding tablespaces & dropping all existing tables
+    console.log(`Cleaning up existing tables and missing tablespaces...`);
+    await connection.query(`SET FOREIGN_KEY_CHECKS = 0;`);
+
+    // Drop views first
+    try { await connection.query(`DROP VIEW IF EXISTS Available_Rooms;`); } catch (e) {}
+
+    // Get list of all tables
+    const [tables] = await connection.query(`SHOW TABLES;`);
+    const tableKey = `Tables_in_${dbName.toLowerCase()}`;
+    
+    for (const row of tables) {
+      const tableName = Object.values(row)[0];
+      try {
+        await connection.query(`DROP TABLE IF EXISTS \`${tableName}\`;`);
+      } catch (err) {
+        console.warn(`Attempting tablespace discard on '${tableName}' due to: ${err.message}`);
+        try {
+          await connection.query(`ALTER TABLE \`${tableName}\` DISCARD TABLESPACE;`);
+          await connection.query(`DROP TABLE IF EXISTS \`${tableName}\`;`);
+        } catch (discardErr) {
+          console.warn(`Could not drop table '${tableName}': ${discardErr.message}`);
+        }
+      }
+    }
+
+    await connection.query(`SET FOREIGN_KEY_CHECKS = 1;`);
+
+    // Read and execute SQL schema
+    const sqlPath = path.join(__dirname, '../../Hotel_Management_System.sql');
+    if (!fs.existsSync(sqlPath)) {
+      console.error(`SQL schema file not found at ${sqlPath}`);
+      process.exit(1);
+    }
+
+    console.log(`Reading SQL schema file...`);
+    let sql = fs.readFileSync(sqlPath, 'utf8');
+    sql = sql.replace(/DELIMITER \$\$/g, '').replace(/DELIMITER ;/g, '').replace(/\$\$/g, ';');
+
+    console.log(`Executing SQL Schema script...`);
+    try {
+      await connection.query(sql);
+      console.log(`Schema imported successfully!`);
+    } catch (err) {
+      console.warn(`Note during SQL schema import:`, err.message);
+    }
+
+    // Ensure columns exist
+    try { await connection.query(`ALTER TABLE Hotel ADD COLUMN Image_Url VARCHAR(500);`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE Room ADD COLUMN Sale_Rate DECIMAL(10,2);`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE Room ADD COLUMN Room_Description TEXT;`); } catch (e) {}
+
+    // Clear & Seed clean dataset
+    console.log('Seeding Bangladesh Hotels (Dhaka, Cox\'s Bazar, Sylhet)...');
+    await connection.query(`
+      INSERT INTO Hotel (Hotel_ID, Hotel_Name, Address, City, Contact_Number, Star_Rating, Image_Url) VALUES
+      (1, 'Hotel.com Grand Palace', '78 Gulshan Avenue, Block SE(F)', 'Dhaka', '+880-1711-001122', 5, 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80'),
+      (2, 'Hotel.com Bay Breeze Resort', 'Kolatoli Beach Road', 'Cox''s Bazar', '+880-1819-334455', 4, 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80'),
+      (3, 'Hotel.com Tea Garden Lodge', 'Zindabazar Commercial Area', 'Sylhet', '+880-1912-667788', 4, 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=800&q=80');
+    `);
+
+    // Seed Persons (Bangladeshi Guests and Staff)
+    console.log('Seeding Persons, Guests, and Employees...');
+    await connection.query(`
+      INSERT INTO Person (Person_ID, First_Name, Last_Name, Phone_Number, Email, Address, Nationality) VALUES
+      (1, 'Tanvir', 'Rahman', '+8801700112233', 'tanvir.rahman@example.com', 'House 42, Road 11, Banani, Dhaka', 'Bangladeshi'),
+      (2, 'Nusrat', 'Jahan', '+8801811223344', 'nusrat.jahan@example.com', '78 Agrabad C/A, Chittagong', 'Bangladeshi'),
+      (3, 'Arif', 'Hossain', '+8801922334455', 'arif.hossain@example.com', 'Dolphin Circle, Cox''s Bazar', 'Bangladeshi'),
+      (4, 'Shakib', 'Ahmed', '+8801533445566', 'shakib.ahmed@example.com', 'Gulshan 2, Dhaka', 'Bangladeshi'),
+      (5, 'Mahmud', 'Hasan', '+8801644556677', 'mahmud.hasan@example.com', 'Mirpur 10, Dhaka', 'Bangladeshi');
+    `);
+
+    // Insert Guests (Person IDs 1, 2, 3)
+    await connection.query(`
+      INSERT INTO Guest (Guest_ID, Registration_Date, Identification_Number) VALUES
+      (1, '2026-01-15', 'NID-1994829102938'),
+      (2, '2026-02-01', 'NID-1988471928374'),
+      (3, '2026-02-10', 'PASSPORT-A09823411');
+    `);
+
+    // Insert Employees (Person IDs 4, 5)
+    await connection.query(`
+      INSERT INTO Employee (Employee_ID, Hotel_ID, Designation, Salary, Joining_Date, Employment_Status) VALUES
+      (4, 1, 'General Manager', 120000.00, '2024-03-01', 'Active'),
+      (5, 1, 'Front Desk Executive', 45000.00, '2024-06-15', 'Active');
+    `);
+
+    // Seed Rooms with BDT Rates (৳), Sale Rates, and Real Room Descriptions
+    console.log('Seeding Rooms (BDT ৳ rates & sale rates)...');
+    await connection.query(`
+      INSERT INTO Room (Room_ID, Hotel_ID, Room_Number, Room_Type, Floor_Number, Capacity, Nightly_Rate, Sale_Rate, Room_Description, Availability_Status) VALUES
+      (1, 1, '101', 'Single', 1, 1, 4500.00, 3500.00, 'Single Deluxe Room • Air conditioning • King bed • Breakfast included • Free cancellation', 'Available'),
+      (2, 1, '102', 'Double', 1, 2, 8000.00, 6500.00, 'Executive Double Room • Ocean / City balcony view • Free Wi-Fi • Breakfast included', 'Available'),
+      (3, 1, '201', 'Suite', 2, 3, 18000.00, 15000.00, 'Presidential Luxury Suite • Private lounge • Jacuzzi bath • Complimentary airport transfer', 'Available'),
+      (4, 1, '301', 'Deluxe', 3, 4, 14000.00, 12000.00, 'Deluxe Family Suite • 2 King beds • Air conditioning • Complimentary breakfast tray', 'Available'),
+      (5, 2, 'A1', 'Double', 1, 2, 7000.00, 5500.00, 'Beachfront Sea View Room • Private balcony • Air conditioning • Free cancellation', 'Available'),
+      (6, 2, 'B2', 'Suite', 2, 4, 22000.00, 18000.00, 'Oceanfront Luxury Villa Suite • Swimming pool access • Free breakfast • Private terrace', 'Available'),
+      (7, 3, 'T101', 'Deluxe', 1, 2, 5000.00, 4000.00, 'Tea Garden View Eco Lodge • King bed • Air conditioning • Organic herbal breakfast', 'Available');
+    `);
+
+    // Seed Services
+    console.log('Seeding Services...');
+    await connection.query(`
+      INSERT INTO Service (Service_ID, Service_Name, Service_Charge, Service_Description) VALUES
+      (1, 'Express Laundry & Pressing', 500.00, 'Full laundry wash, iron, and same-day room delivery'),
+      (2, 'Luxury Spa & Herbal Therapy', 3500.00, '90-minute aromatherapy and traditional thermal relaxation'),
+      (3, 'Airport Chauffeur Transfer', 2500.00, 'Private sedan transport to/from Hazrat Shahjalal Airport'),
+      (4, 'Gourmet Room Service Dining', 1200.00, '24/7 in-room dining tray service with local & continental dishes');
+    `);
+
+    // Seed Reservations & Bills
+    console.log('Seeding Reservations & Bills...');
+    await connection.query(`
+      INSERT INTO Reservation (Reservation_ID, Guest_ID, Room_ID, Booking_Date, Check_In_Date, Check_Out_Date, Reservation_Status, Number_of_Guests) VALUES
+      (1, 1, 3, '2026-07-20', '2026-08-01', '2026-08-05', 'Checked In', 2),
+      (2, 2, 2, '2026-07-25', '2026-08-03', '2026-08-07', 'Confirmed', 2);
+    `);
+
+    await connection.query(`UPDATE Room SET Availability_Status = 'Occupied' WHERE Room_ID = 3;`);
+    await connection.query(`UPDATE Room SET Availability_Status = 'Reserved' WHERE Room_ID = 2;`);
+
+    await connection.query(`
+      INSERT INTO Service_Record (Service_Record_ID, Guest_ID, Service_ID, Service_Date, Quantity, Charge) VALUES
+      (1, 1, 2, '2026-08-02', 1, 3500.00),
+      (2, 1, 4, '2026-08-02', 2, 2400.00);
+    `);
+
+    await connection.query(`
+      INSERT INTO Bill (Bill_ID, Reservation_ID, Billing_Date, Total_Amount, Taxes, Discounts, Final_Amount, Payment_Method, Payment_Status) VALUES
+      (1, 1, '2026-08-05', 65900.00, 6590.00, 2000.00, 70490.00, 'Card', 'Paid');
+    `);
+
+    await connection.query(`
+      INSERT INTO Bill_Item (Bill_ID, Bill_Item_No, Service_Record_ID, Quantity, Charge) VALUES
+      (1, 1, 1, 1, 3500.00),
+      (1, 2, 2, 2, 2400.00);
+    `);
+
+    console.log('Database successfully cleaned and re-seeded with valid tablespaces!');
+    await connection.end();
+  } catch (error) {
+    console.error('Database Initialization Failed:', error.message);
+    process.exit(1);
+  }
+}
+
+initDb();
