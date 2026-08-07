@@ -5,9 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { 
   UserPlus, 
   ArrowRight, 
-  Sparkle, 
   CheckCircle, 
-  ShieldCheck,
   CircleNotch
 } from '@phosphor-icons/react';
 
@@ -197,12 +195,12 @@ export const RegisterPage: React.FC = () => {
 
         </form>
 
-        {/* <div className="pt-4 border-t border-acc-100 dark:border-acc-800 flex justify-between items-center text-xs font-mono">
-          <span className="text-acc-500">Already registered or a staff member?</span>
-          <Link to="/login" className="text-brand-600 dark:text-brand-400 font-bold hover:underline">
-            Sign in to Portal →
+        <div className="pt-4 border-t border-acc-100 dark:border-acc-800 flex justify-between items-center text-xs font-mono">
+          <span className="text-acc-500">Already have a guest account?</span>
+          <Link to="/guest-login" className="text-brand-600 dark:text-brand-400 font-bold hover:underline">
+            Guest Account Sign In →
           </Link>
-        </div> */}
+        </div>
 
       </div>
     </div>
