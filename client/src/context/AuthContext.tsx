@@ -7,7 +7,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (username: string, role?: UserRole) => Promise<void>;
-  guestLogin: (phoneOrEmail: string, identificationNumber: string) => Promise<void>;
+  guestLogin: (emailOrUsername: string, password: string) => Promise<void>;
   setSession: (token: string, user: User) => void;
   logout: () => void;
   switchRole: (role: UserRole) => void;
@@ -58,9 +58,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const guestLogin = async (phoneOrEmail: string, identificationNumber: string) => {
+  const guestLogin = async (emailOrUsername: string, password: string) => {
     try {
-      const response = await api.post('/auth/guest-login', { phoneOrEmail, identificationNumber });
+      const response = await api.post('/auth/guest-login', { emailOrUsername, password });
       const { token: jwtToken, user: loggedUser } = response.data;
 
       const activeUser: User = {

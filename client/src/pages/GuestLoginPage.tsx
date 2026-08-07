@@ -5,22 +5,22 @@ import {
   UserCheck, 
   ArrowRight, 
   CircleNotch,
-  Phone,
-  IdentificationCard
+  Envelope,
+  LockKey
 } from '@phosphor-icons/react';
 
 export const GuestLoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { guestLogin } = useAuth();
 
-  const [phoneOrEmail, setPhoneOrEmail] = useState('');
-  const [identificationNumber, setIdentificationNumber] = useState('');
+  const [emailOrUsername, setEmailOrUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   const fillSampleGuest = () => {
-    setPhoneOrEmail('+8801700112233');
-    setIdentificationNumber('NID-1994829102938');
+    setEmailOrUsername('tanvir.rahman@example.com');
+    setPassword('password');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,10 +29,10 @@ export const GuestLoginPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      await guestLogin(phoneOrEmail, identificationNumber);
+      await guestLogin(emailOrUsername, password);
       navigate('/my-bookings');
     } catch (err: any) {
-      setErrorMsg(err.message || 'Customer login failed. Please check credentials.');
+      setErrorMsg(err.message || 'Customer login failed. Please check your Email ID / Username and Password.');
       setIsSubmitting(false);
     }
   };
@@ -51,14 +51,14 @@ export const GuestLoginPage: React.FC = () => {
             Guest Account Sign In
           </h1>
           <p className="text-xs text-acc-500 font-sans">
-            Sign in to view your bookings, change stay dates, or request cancellations
+            Sign in using your Email ID or Username and Password to view your hotel bookings
           </p>
         </div>
 
         {/* Quick Sample Demo Badge */}
         <div className="p-3 bg-acc-50 dark:bg-acc-850 border border-acc-200 dark:border-acc-700 rounded text-[11px] font-mono text-acc-700 dark:text-acc-300 space-y-1">
           <div className="font-bold text-acc-950 dark:text-acc-100 flex items-center justify-between">
-            <span>Demo Registered Guest Account:</span>
+            <span>Demo Guest Account:</span>
             <button
               type="button"
               onClick={fillSampleGuest}
@@ -68,7 +68,7 @@ export const GuestLoginPage: React.FC = () => {
             </button>
           </div>
           <p className="text-[10px] text-acc-500">
-            Phone: <code>+8801700112233</code> | NID: <code>NID-1994829102938</code>
+            Email / Username: <code>tanvir.rahman@example.com</code> | Password: <code>password</code>
           </p>
         </div>
 
@@ -82,30 +82,30 @@ export const GuestLoginPage: React.FC = () => {
           
           <div>
             <label className="block text-xs font-medium mb-1 flex items-center gap-1">
-              <Phone size={14} className="text-brand-500" />
-              <span>Registered Phone Number or Email *</span>
+              <Envelope size={14} className="text-brand-500" />
+              <span>Email ID or Username *</span>
             </label>
             <input
               type="text"
               required
-              placeholder="e.g. +8801700112233 or tanvir@example.com"
-              value={phoneOrEmail}
-              onChange={(e) => setPhoneOrEmail(e.target.value)}
+              placeholder="e.g. tanvir.rahman@example.com or Tanvir"
+              value={emailOrUsername}
+              onChange={(e) => setEmailOrUsername(e.target.value)}
               className="w-full px-3 py-2 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
             />
           </div>
 
           <div>
             <label className="block text-xs font-medium mb-1 flex items-center gap-1">
-              <IdentificationCard size={14} className="text-brand-500" />
-              <span>National ID / Passport Number *</span>
+              <LockKey size={14} className="text-brand-500" />
+              <span>Password *</span>
             </label>
             <input
               type="password"
               required
-              placeholder="e.g. NID-1994829102938"
-              value={identificationNumber}
-              onChange={(e) => setIdentificationNumber(e.target.value)}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
             />
           </div>
@@ -114,7 +114,7 @@ export const GuestLoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-acc-950 font-extrabold text-xs rounded transition-all flex items-center justify-center gap-2 shadow active:scale-95"
+              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-acc-950 font-extrabold text-xs rounded transition-all flex items-center justify-center gap-2 shadow active:scale-95 font-mono"
             >
               {isSubmitting ? (
                 <>
