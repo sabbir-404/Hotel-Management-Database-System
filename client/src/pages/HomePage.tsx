@@ -7,7 +7,10 @@ import {
   CalendarBlank, 
   MapPin, 
   ArrowRight,
-  Users
+  FacebookLogo,
+  TwitterLogo,
+  LinkedinLogo,
+  Globe
 } from '@phosphor-icons/react';
 
 interface TeamMember {
@@ -212,49 +215,99 @@ export const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* About Us / Team Section (Placed just below Featured Hotel Regions) */}
-      <div className="space-y-4 pt-4 border-t border-acc-200 dark:border-acc-800">
-        <div className="flex items-center gap-2">
-          <Users size={20} className="text-brand-500 shrink-0" />
-          <div>
-            <h2 className="text-sm font-extrabold tracking-tight text-acc-950 dark:text-acc-50">
-              About Us & Development Team
-            </h2>
-            <p className="text-xs text-acc-500 font-sans">
-              Meet the core engineering & design team behind Hotel.com Database Management System
-            </p>
+      {/* About Us / Team Members Section (Formal & Eye-Soothing Redesign) */}
+      <div className="space-y-6 pt-8 border-t border-acc-200 dark:border-acc-800">
+        
+        {/* Centered Formal Section Header */}
+        <div className="text-center space-y-2 max-w-lg mx-auto">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-500/15 border border-brand-500/30 rounded-full text-brand-600 dark:text-brand-400 font-mono text-[10px] font-bold uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+            <span>OUR TEAM</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
           </div>
+          
+          <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-acc-950 dark:text-acc-50">
+            Team <span className="text-brand-500">Members</span>
+          </h2>
+          
+          <p className="text-xs text-acc-500 font-sans leading-relaxed">
+            The engineering and design minds behind Hotel.com Database Management System
+          </p>
         </div>
 
         {/* 6 Team Member Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 pt-2">
           {teamMembers.map((member) => (
             <div
               key={member.id}
-              className="panel-card p-4 border border-acc-200 dark:border-acc-800 space-y-3 hover:border-brand-500 transition-all shadow-sm"
+              className="bg-white dark:bg-acc-900 border border-acc-200 dark:border-acc-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all space-y-4 text-center group hover:border-brand-500/60"
             >
-              {/* Profile Image & Name Header */}
-              <div className="flex items-center gap-3">
+              {/* Small Round Profile Picture Icon */}
+              <div className="relative inline-block mx-auto">
                 <img
                   src={member.image}
                   alt={member.name}
-                  className="w-12 h-12 rounded-full object-cover border-2 border-brand-500/30 shrink-0"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-brand-500 shadow-sm mx-auto group-hover:scale-105 transition-transform"
                 />
-                <div>
-                  <h3 className="font-bold text-xs text-acc-950 dark:text-acc-50">
-                    {member.name}
-                  </h3>
-                  <span className="text-[10px] font-mono text-acc-400">Team Member</span>
-                </div>
+              </div>
+
+              {/* Name & Title Banner Pill */}
+              <div className="bg-brand-500 text-acc-950 py-2.5 px-3 rounded-xl font-sans shadow-xs">
+                <h3 className="font-extrabold text-xs tracking-tight">
+                  {member.name}
+                </h3>
+                <p className="text-[10px] font-mono font-medium opacity-85">
+                  Software Engineer
+                </p>
               </div>
 
               {/* Empty Description Box */}
-              <div className="p-3 bg-acc-50 dark:bg-acc-850 rounded border border-dashed border-acc-200 dark:border-acc-700 min-h-[64px]">
-                {/* Reserved space for description */}
+              <div className="p-3 bg-acc-50 dark:bg-acc-850 rounded-xl border border-dashed border-acc-200 dark:border-acc-750 min-h-[56px] flex items-center justify-center">
+                <span className="text-[10px] text-acc-400 font-mono italic">
+                  {/* Reserved space for member bio description */}
+                </span>
               </div>
+
+              {/* Social Link Icon Circle Buttons */}
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <a
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  className="w-7 h-7 rounded-full bg-acc-100 dark:bg-acc-800 text-acc-600 dark:text-acc-300 hover:bg-brand-500 hover:text-acc-950 transition-colors flex items-center justify-center text-xs"
+                  title="Facebook"
+                >
+                  <FacebookLogo size={14} />
+                </a>
+                <a
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  className="w-7 h-7 rounded-full bg-acc-100 dark:bg-acc-800 text-acc-600 dark:text-acc-300 hover:bg-brand-500 hover:text-acc-950 transition-colors flex items-center justify-center text-xs"
+                  title="Twitter"
+                >
+                  <TwitterLogo size={14} />
+                </a>
+                <a
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  className="w-7 h-7 rounded-full bg-acc-100 dark:bg-acc-800 text-acc-600 dark:text-acc-300 hover:bg-brand-500 hover:text-acc-950 transition-colors flex items-center justify-center text-xs"
+                  title="LinkedIn"
+                >
+                  <LinkedinLogo size={14} />
+                </a>
+                <a
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  className="w-7 h-7 rounded-full bg-acc-100 dark:bg-acc-800 text-acc-600 dark:text-acc-300 hover:bg-brand-500 hover:text-acc-950 transition-colors flex items-center justify-center text-xs"
+                  title="Website"
+                >
+                  <Globe size={14} />
+                </a>
+              </div>
+
             </div>
           ))}
         </div>
+
       </div>
 
     </div>
