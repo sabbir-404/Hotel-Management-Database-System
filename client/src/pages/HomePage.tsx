@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { Hotel } from '../types';
@@ -7,10 +7,9 @@ import {
   CalendarBlank, 
   MapPin, 
   ArrowRight,
-  FacebookLogo,
-  TwitterLogo,
-  LinkedinLogo,
-  Globe
+  Buildings,
+  Star,
+  Eye
 } from '@phosphor-icons/react';
 
 interface TeamMember {
@@ -23,6 +22,7 @@ export const HomePage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [hotels, setHotels] = useState<Hotel[]>([]);
   const [dbRegions, setDbRegions] = useState<string[]>(['Dhaka', 'Cox\'s Bazar', 'Sylhet']);
   const [selectedRegion, setSelectedRegion] = useState<string>('Dhaka');
   const [checkIn, setCheckIn] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -63,10 +63,11 @@ export const HomePage: React.FC = () => {
   ];
 
   useEffect(() => {
-    const fetchHotelRegions = async () => {
+    const fetchHotelsData = async () => {
       try {
         const res = await api.get('/hotels');
         if (res.data && Array.isArray(res.data)) {
+          setHotels(res.data);
           const cities = Array.from(new Set(res.data.map((h: Hotel) => h.City).filter(Boolean))) as string[];
           if (cities.length > 0) {
             setDbRegions(cities);
@@ -74,10 +75,10 @@ export const HomePage: React.FC = () => {
           }
         }
       } catch (err) {
-        console.error('Failed to load database hotel regions', err);
+        console.error('Failed to load database hotels', err);
       }
     };
-    fetchHotelRegions();
+    fetchHotelsData();
   }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -174,8 +175,78 @@ export const HomePage: React.FC = () => {
 
       </div>
 
+      {/* Trending Hotels Section (Below Search Bar, Above Featured Hotel Regions) */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-extrabold tracking-tight text-acc-950 dark:text-acc-50 flex items-center gap-2">
+              <Buildings size={18} className="text-brand-500" />
+              <span>Trending Hotels</span>
+            </h2>
+            <p className="text-xs text-acc-500 font-sans">
+              Popular Bangladesh hotels currently available in our database
+            </p>
+          </div>
+          <Link
+            to="/hotels"
+            className="text-xs font-mono font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1"
+          >
+            <span>View All Hotels</span>
+            <ArrowRight size={12} />
+          </Link>
+        </div>
+
+        {/* Hotel Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {hotels.map((hotel) => (
+            <div
+              key={hotel.Hotel_ID}
+              className="bg-white dark:bg-acc-900 border border-acc-200 dark:border-acc-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between group"
+            >
+              {/* Hotel Image */}
+              <div className="relative h-44 overflow-hidden bg-acc-100 dark:bg-acc-800">
+                <img
+                  src={hotel.Image_Url || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80'}
+                  alt={hotel.Hotel_Name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute top-3 right-3 bg-acc-950/80 backdrop-blur-sm text-amber-400 px-2 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1 border border-acc-700">
+                  <Star size={12} weight="fill" />
+                  <span>{hotel.Star_Rating || 5}-Star</span>
+                </div>
+              </div>
+
+              {/* Hotel Details */}
+              <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                <div className="space-y-1">
+                  <h3 className="font-extrabold text-sm text-acc-950 dark:text-acc-50 group-hover:text-brand-500 transition-colors">
+                    {hotel.Hotel_Name}
+                  </h3>
+                  <div className="flex items-center gap-1.5 text-xs text-acc-500 font-sans">
+                    <MapPin size={14} className="text-amber-500 shrink-0" />
+                    <span>{hotel.Address ? `${hotel.Address}, ` : ''}{hotel.City} Destination</span>
+                  </div>
+                </div>
+
+                {/* View More Button */}
+                <div className="pt-2 border-t border-acc-100 dark:border-acc-800">
+                  <button
+                    onClick={() => navigate(`/hotels?destination=${encodeURIComponent(hotel.City)}`)}
+                    className="w-full py-2 bg-brand-500 hover:bg-brand-600 text-acc-950 font-extrabold text-xs rounded transition-all flex items-center justify-center gap-1.5 font-mono shadow-xs active:scale-95"
+                  >
+                    <Eye size={15} />
+                    <span>View More</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Featured Hotel Regions */}
-      <div className="space-y-3">
+      <div className="space-y-3 pt-2">
         <h2 className="text-xs font-mono uppercase tracking-widest text-acc-500 font-semibold">
           Featured Hotel Regions
         </h2>
@@ -215,7 +286,7 @@ export const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* About Us / Team Members Section (Formal & Eye-Soothing Redesign) */}
+      {/* About Us / Team Members Section */}
       <div className="space-y-6 pt-8 border-t border-acc-200 dark:border-acc-800">
         
         {/* Centered Formal Section Header */}
@@ -266,42 +337,6 @@ export const HomePage: React.FC = () => {
                 <span className="text-[10px] text-acc-400 font-mono italic">
                   {/* Reserved space for member bio description */}
                 </span>
-              </div>
-
-              {/* Social Link Icon Circle Buttons */}
-              <div className="flex items-center justify-center gap-2 pt-1">
-                <a
-                  href="#"
-                  onClick={(e) => e.preventDefault()}
-                  className="w-7 h-7 rounded-full bg-acc-100 dark:bg-acc-800 text-acc-600 dark:text-acc-300 hover:bg-brand-500 hover:text-acc-950 transition-colors flex items-center justify-center text-xs"
-                  title="Facebook"
-                >
-                  <FacebookLogo size={14} />
-                </a>
-                <a
-                  href="#"
-                  onClick={(e) => e.preventDefault()}
-                  className="w-7 h-7 rounded-full bg-acc-100 dark:bg-acc-800 text-acc-600 dark:text-acc-300 hover:bg-brand-500 hover:text-acc-950 transition-colors flex items-center justify-center text-xs"
-                  title="Twitter"
-                >
-                  <TwitterLogo size={14} />
-                </a>
-                <a
-                  href="#"
-                  onClick={(e) => e.preventDefault()}
-                  className="w-7 h-7 rounded-full bg-acc-100 dark:bg-acc-800 text-acc-600 dark:text-acc-300 hover:bg-brand-500 hover:text-acc-950 transition-colors flex items-center justify-center text-xs"
-                  title="LinkedIn"
-                >
-                  <LinkedinLogo size={14} />
-                </a>
-                <a
-                  href="#"
-                  onClick={(e) => e.preventDefault()}
-                  className="w-7 h-7 rounded-full bg-acc-100 dark:bg-acc-800 text-acc-600 dark:text-acc-300 hover:bg-brand-500 hover:text-acc-950 transition-colors flex items-center justify-center text-xs"
-                  title="Website"
-                >
-                  <Globe size={14} />
-                </a>
               </div>
 
             </div>
