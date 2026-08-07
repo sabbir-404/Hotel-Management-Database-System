@@ -1,7 +1,6 @@
 # Hotel.com - Full-Stack Hotel Management & Guest Reservation System (Bangladesh Edition)
 
 [![Tech Stack](https://img.shields.io/badge/Stack-React%20%7C%20TypeScript%20%7C%20Node.js%20%7C%20Express%20%7C%20MySQL-blue)](https://github.com/)
-[![Currency](https://img.shields.io/badge/Currency-BDT%20(%E0%A7%B3)-emerald)](#)
 [![License](https://img.shields.io/badge/License-MIT-orange)](#)
 
 A full-stack web application designed for hotel chains in Bangladesh. **Hotel.com** features a dual-interface architecture: an elegant consumer-facing **Hotel Booking Portal** for guests and a high-contrast **Staff Admin Operations Panel** for hotel administrators, managers, and receptionists.
