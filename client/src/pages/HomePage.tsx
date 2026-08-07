@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { Hotel } from '../types';
 import { 
-  Bed, 
   CalendarBlank, 
   MapPin, 
   ArrowRight,
-  CheckCircle,
-  Warning
+  Users
 } from '@phosphor-icons/react';
+
+interface TeamMember {
+  id: number;
+  name: string;
+  image: string;
+}
 
 export const HomePage: React.FC = () => {
   const { user } = useAuth();
@@ -20,6 +24,40 @@ export const HomePage: React.FC = () => {
   const [selectedRegion, setSelectedRegion] = useState<string>('Dhaka');
   const [checkIn, setCheckIn] = useState<string>(new Date().toISOString().split('T')[0]);
   const [checkOut, setCheckOut] = useState<string>(new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0]);
+
+  // 6 Team Members list with placeholder profile images and empty description boxes
+  const teamMembers: TeamMember[] = [
+    {
+      id: 1,
+      name: 'Team Member 1',
+      image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'
+    },
+    {
+      id: 2,
+      name: 'Team Member 2',
+      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'
+    },
+    {
+      id: 3,
+      name: 'Team Member 3',
+      image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80'
+    },
+    {
+      id: 4,
+      name: 'Team Member 4',
+      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80'
+    },
+    {
+      id: 5,
+      name: 'Team Member 5',
+      image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80'
+    },
+    {
+      id: 6,
+      name: 'Team Member 6',
+      image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80'
+    }
+  ];
 
   useEffect(() => {
     const fetchHotelRegions = async () => {
@@ -133,7 +171,7 @@ export const HomePage: React.FC = () => {
 
       </div>
 
-      {/* Your upcoming trip section */}
+      {/* Featured Hotel Regions */}
       <div className="space-y-3">
         <h2 className="text-xs font-mono uppercase tracking-widest text-acc-500 font-semibold">
           Featured Hotel Regions
@@ -171,6 +209,51 @@ export const HomePage: React.FC = () => {
             </div>
             <p className="text-xs text-acc-500">Peaceful tea gardens, hill view lodges & organic herbal spa treatments.</p>
           </div>
+        </div>
+      </div>
+
+      {/* About Us / Team Section (Placed just below Featured Hotel Regions) */}
+      <div className="space-y-4 pt-4 border-t border-acc-200 dark:border-acc-800">
+        <div className="flex items-center gap-2">
+          <Users size={20} className="text-brand-500 shrink-0" />
+          <div>
+            <h2 className="text-sm font-extrabold tracking-tight text-acc-950 dark:text-acc-50">
+              About Us & Development Team
+            </h2>
+            <p className="text-xs text-acc-500 font-sans">
+              Meet the core engineering & design team behind Hotel.com Database Management System
+            </p>
+          </div>
+        </div>
+
+        {/* 6 Team Member Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {teamMembers.map((member) => (
+            <div
+              key={member.id}
+              className="panel-card p-4 border border-acc-200 dark:border-acc-800 space-y-3 hover:border-brand-500 transition-all shadow-sm"
+            >
+              {/* Profile Image & Name Header */}
+              <div className="flex items-center gap-3">
+                <img
+                  src={member.image}
+                  alt={member.name}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-brand-500/30 shrink-0"
+                />
+                <div>
+                  <h3 className="font-bold text-xs text-acc-950 dark:text-acc-50">
+                    {member.name}
+                  </h3>
+                  <span className="text-[10px] font-mono text-acc-400">Team Member</span>
+                </div>
+              </div>
+
+              {/* Empty Description Box */}
+              <div className="p-3 bg-acc-50 dark:bg-acc-850 rounded border border-dashed border-acc-200 dark:border-acc-700 min-h-[64px]">
+                {/* Reserved space for description */}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
