@@ -75,6 +75,7 @@ async function initDb() {
     try { await connection.query(`ALTER TABLE Hotel ADD COLUMN Image_Url VARCHAR(500);`); } catch (e) {}
     try { await connection.query(`ALTER TABLE Room ADD COLUMN Sale_Rate DECIMAL(10,2);`); } catch (e) {}
     try { await connection.query(`ALTER TABLE Room ADD COLUMN Room_Description TEXT;`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE Person ADD COLUMN Username VARCHAR(100) UNIQUE;`); } catch (e) {}
 
     // Seed 6 Hotels in Bangladesh
     console.log('Seeding 6 Bangladesh Hotels (Dhaka, Cox\'s Bazar, Sylhet, Chittagong, Rangamati, Sreemangal)...');
@@ -88,15 +89,15 @@ async function initDb() {
       (6, 'Hotel.com Heritage Eco Lodge', 'Grand Trunk Road', 'Sreemangal', '+880-1511-223344', 4, 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80');
     `);
 
-    // Seed Persons (Bangladeshi Guests and Staff)
+    // Seed Persons (Bangladeshi Guests and Staff) with Usernames
     console.log('Seeding Persons, Guests, and Employees...');
     await connection.query(`
-      INSERT INTO Person (Person_ID, First_Name, Last_Name, Phone_Number, Email, Address, Nationality) VALUES
-      (1, 'Tanvir', 'Rahman', '+8801700112233', 'tanvir.rahman@example.com', 'House 42, Road 11, Banani, Dhaka', 'Bangladeshi'),
-      (2, 'Nusrat', 'Jahan', '+8801811223344', 'nusrat.jahan@example.com', '78 Agrabad C/A, Chittagong', 'Bangladeshi'),
-      (3, 'Arif', 'Hossain', '+8801922334455', 'arif.hossain@example.com', 'Dolphin Circle, Cox''s Bazar', 'Bangladeshi'),
-      (4, 'Shakib', 'Ahmed', '+8801533445566', 'shakib.ahmed@example.com', 'Gulshan 2, Dhaka', 'Bangladeshi'),
-      (5, 'Mahmud', 'Hasan', '+8801644556677', 'mahmud.hasan@example.com', 'Mirpur 10, Dhaka', 'Bangladeshi');
+      INSERT INTO Person (Person_ID, First_Name, Last_Name, Username, Phone_Number, Email, Address, Nationality) VALUES
+      (1, 'Tanvir', 'Rahman', 'tanvir', '+8801700112233', 'tanvir.rahman@example.com', 'House 42, Road 11, Banani, Dhaka', 'Bangladeshi'),
+      (2, 'Nusrat', 'Jahan', 'nusrat', '+8801811223344', 'nusrat.jahan@example.com', '78 Agrabad C/A, Chittagong', 'Bangladeshi'),
+      (3, 'Arif', 'Hossain', 'arif', '+8801922334455', 'arif.hossain@example.com', 'Dolphin Circle, Cox''s Bazar', 'Bangladeshi'),
+      (4, 'Shakib', 'Ahmed', 'shakib', '+8801533445566', 'shakib.ahmed@example.com', 'Gulshan 2, Dhaka', 'Bangladeshi'),
+      (5, 'Mahmud', 'Hasan', 'mahmud', '+8801644556677', 'mahmud.hasan@example.com', 'Mirpur 10, Dhaka', 'Bangladeshi');
     `);
 
     // Insert Guests (Person IDs 1, 2, 3)
@@ -114,7 +115,7 @@ async function initDb() {
       (5, 1, 'Front Desk Executive', 45000.00, '2024-06-15', 'Active');
     `);
 
-    // Seed Rooms across all 6 hotels with BDT Rates (৳), Sale Rates, and Real Room Descriptions
+    // Seed Rooms across all 6 hotels
     console.log('Seeding Rooms (BDT ৳ rates & sale rates)...');
     await connection.query(`
       INSERT INTO Room (Room_ID, Hotel_ID, Room_Number, Room_Type, Floor_Number, Capacity, Nightly_Rate, Sale_Rate, Room_Description, Availability_Status) VALUES
@@ -168,7 +169,7 @@ async function initDb() {
       (1, 2, 2, 2, 2400.00);
     `);
 
-    console.log('Database successfully cleaned and re-seeded with 6 Bangladesh hotels!');
+    console.log('Database successfully cleaned and re-seeded with Username support!');
     await connection.end();
   } catch (error) {
     console.error('Database Initialization Failed:', error.message);

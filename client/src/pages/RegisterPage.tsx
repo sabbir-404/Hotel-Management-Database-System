@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -6,7 +6,9 @@ import {
   UserPlus, 
   ArrowRight, 
   CheckCircle, 
-  CircleNotch
+  CircleNotch,
+  User,
+  XCircle
 } from '@phosphor-icons/react';
 
 export const RegisterPage: React.FC = () => {
@@ -16,6 +18,7 @@ export const RegisterPage: React.FC = () => {
   const [form, setForm] = useState({
     First_Name: '',
     Last_Name: '',
+    Username: '',
     Phone_Number: '',
     Email: '',
     Address: '',
@@ -23,14 +26,62 @@ export const RegisterPage: React.FC = () => {
     Identification_Number: ''
   });
 
+  // Real-time username check state
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [usernameMsg, setUsernameMsg] = useState('');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Live Automatic Username Availability Check
+  useEffect(() => {
+    const trimmedUsername = form.Username.trim();
+
+    if (!trimmedUsername) {
+      setUsernameStatus('idle');
+      setUsernameMsg('');
+      return;
+    }
+
+    if (trimmedUsername.length < 3) {
+      setUsernameStatus('taken');
+      setUsernameMsg('Username must be at least 3 characters');
+      return;
+    }
+
+    setUsernameStatus('checking');
+    setUsernameMsg('Checking availability...');
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get(`/guests/check-username?username=${encodeURIComponent(trimmedUsername)}`);
+        if (res.data.available) {
+          setUsernameStatus('available');
+          setUsernameMsg('✓ Username is available');
+        } else {
+          setUsernameStatus('taken');
+          setUsernameMsg(res.data.message || '✗ Username is already taken');
+        }
+      } catch (err) {
+        setUsernameStatus('idle');
+        setUsernameMsg('');
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [form.Username]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
+
+    if (form.Username && usernameStatus === 'taken') {
+      setErrorMsg('Please choose an available username before submitting.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -40,14 +91,14 @@ export const RegisterPage: React.FC = () => {
 
       setSuccessMsg(`Registration successful! Profile #GST-${newGuest.Guest_ID} created. Logging you in...`);
 
-      // 2. Automatically log in as Guest / Receptionist context to allow self-booking
+      // 2. Automatically log in
       try {
         await login('receptionist', 'Receptionist');
       } catch (loginErr) {
         console.warn('Auto-login fallback:', loginErr);
       }
 
-      // 3. Soft delay and redirect to booking wizard with guest preselected
+      // 3. Soft delay and redirect to booking wizard
       setTimeout(() => {
         navigate(`/reservations/new?guestId=${newGuest.Guest_ID}`);
       }, 1200);
@@ -71,7 +122,7 @@ export const RegisterPage: React.FC = () => {
             Guest Account Registration
           </h1>
           <p className="text-xs text-acc-500 font-sans">
-            Register your profile once to book luxury hotels across Bangladesh on <strong>Hotel.com</strong>
+            Register your unique guest username & profile to book luxury hotels on <strong>Hotel.com</strong>
           </p>
         </div>
 
@@ -88,11 +139,11 @@ export const RegisterPage: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 font-sans text-xs">
           
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium mb-1">First Name *</label>
+              <label className="block font-medium mb-1">First Name *</label>
               <input
                 type="text"
                 required
@@ -103,7 +154,7 @@ export const RegisterPage: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1">Last Name *</label>
+              <label className="block font-medium mb-1">Last Name *</label>
               <input
                 type="text"
                 required
@@ -115,9 +166,55 @@ export const RegisterPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Unique Username Input Field with Real-Time Auto Check */}
+          <div>
+            <label className="block font-medium mb-1 flex items-center gap-1">
+              <User size={14} className="text-brand-500" />
+              <span>Unique Username *</span>
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                required
+                placeholder="e.g. sadman_bd"
+                value={form.Username}
+                onChange={(e) => setForm({ ...form, Username: e.target.value })}
+                className={`w-full px-3 py-2 bg-acc-50 dark:bg-acc-800 border rounded text-xs font-mono transition-colors ${
+                  usernameStatus === 'available'
+                    ? 'border-emerald-500 focus:border-emerald-500'
+                    : usernameStatus === 'taken'
+                    ? 'border-red-500 focus:border-red-500'
+                    : 'border-acc-300 dark:border-acc-700'
+                }`}
+              />
+              {usernameStatus === 'checking' && (
+                <CircleNotch size={16} className="animate-spin text-amber-500 absolute right-3 top-2.5" />
+              )}
+              {usernameStatus === 'available' && (
+                <CheckCircle size={16} className="text-emerald-500 absolute right-3 top-2.5" />
+              )}
+              {usernameStatus === 'taken' && (
+                <XCircle size={16} className="text-red-500 absolute right-3 top-2.5" />
+              )}
+            </div>
+
+            {/* Live Feedback Message */}
+            {usernameMsg && (
+              <p className={`text-[11px] font-mono mt-1 ${
+                usernameStatus === 'available' 
+                  ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
+                  : usernameStatus === 'taken' 
+                  ? 'text-red-600 dark:text-red-400 font-bold' 
+                  : 'text-amber-600 dark:text-amber-400'
+              }`}>
+                {usernameMsg}
+              </p>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium mb-1">Phone Number (Unique) *</label>
+              <label className="block font-medium mb-1">Phone Number (Unique) *</label>
               <input
                 type="text"
                 required
@@ -128,7 +225,7 @@ export const RegisterPage: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1">National ID / Passport (Unique) *</label>
+              <label className="block font-medium mb-1">National ID / Passport (Unique) *</label>
               <input
                 type="text"
                 required
@@ -142,7 +239,7 @@ export const RegisterPage: React.FC = () => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium mb-1">Email Address</label>
+              <label className="block font-medium mb-1">Email Address</label>
               <input
                 type="email"
                 placeholder="guest@example.com"
@@ -152,7 +249,7 @@ export const RegisterPage: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium mb-1">Nationality</label>
+              <label className="block font-medium mb-1">Nationality</label>
               <input
                 type="text"
                 value={form.Nationality}
@@ -163,7 +260,7 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Address</label>
+            <label className="block font-medium mb-1">Address</label>
             <input
               type="text"
               placeholder="e.g. Banani, Dhaka"
@@ -176,8 +273,8 @@ export const RegisterPage: React.FC = () => {
           <div className="pt-2">
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-acc-950 font-extrabold text-xs rounded transition-all flex items-center justify-center gap-2 shadow"
+              disabled={isSubmitting || usernameStatus === 'taken' || usernameStatus === 'checking'}
+              className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-acc-950 font-extrabold text-xs rounded transition-all flex items-center justify-center gap-2 shadow active:scale-95 font-mono"
             >
               {isSubmitting ? (
                 <>
