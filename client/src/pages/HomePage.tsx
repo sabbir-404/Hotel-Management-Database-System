@@ -11,11 +11,7 @@ import {
   Star,
   Eye,
   CaretLeft,
-  CaretRight,
-  Image,
-  PencilSimple,
-  CheckCircle,
-  X
+  CaretRight
 } from '@phosphor-icons/react';
 
 interface TeamMember {
@@ -25,51 +21,6 @@ interface TeamMember {
   image: string;
   description: string;
 }
-
-const DEFAULT_MEMBERS: TeamMember[] = [
-  {
-    id: 1,
-    name: 'Team Member 1',
-    role: 'Software Engineer',
-    image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    description: ''
-  },
-  {
-    id: 2,
-    name: 'Team Member 2',
-    role: 'Software Engineer',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    description: ''
-  },
-  {
-    id: 3,
-    name: 'Team Member 3',
-    role: 'Software Engineer',
-    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
-    description: ''
-  },
-  {
-    id: 4,
-    name: 'Team Member 4',
-    role: 'Software Engineer',
-    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
-    description: ''
-  },
-  {
-    id: 5,
-    name: 'Team Member 5',
-    role: 'Software Engineer',
-    image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
-    description: ''
-  },
-  {
-    id: 6,
-    name: 'Team Member 6',
-    role: 'Software Engineer',
-    image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80',
-    description: ''
-  }
-];
 
 export const HomePage: React.FC = () => {
   const { user } = useAuth();
@@ -85,29 +36,51 @@ export const HomePage: React.FC = () => {
   const [slideIndex, setSlideIndex] = useState<number>(0);
   const [isHovered, setIsHovered] = useState<boolean>(false);
 
-  // Editable Team Members State with localStorage persistence
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(() => {
-    const saved = localStorage.getItem('hms_team_members');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to parse saved team members', e);
-      }
+  // 6 Team Members list (Update names, roles, image URLs, and descriptions directly here in code)
+  const teamMembers: TeamMember[] = [
+    {
+      id: 1,
+      name: 'Team Member 1',
+      role: 'Software Engineer',
+      image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+      description: ''
+    },
+    {
+      id: 2,
+      name: 'Team Member 2',
+      role: 'Software Engineer',
+      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+      description: ''
+    },
+    {
+      id: 3,
+      name: 'Team Member 3',
+      role: 'Software Engineer',
+      image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
+      description: ''
+    },
+    {
+      id: 4,
+      name: 'Team Member 4',
+      role: 'Software Engineer',
+      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
+      description: ''
+    },
+    {
+      id: 5,
+      name: 'Team Member 5',
+      role: 'Software Engineer',
+      image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
+      description: ''
+    },
+    {
+      id: 6,
+      name: 'Team Member 6',
+      role: 'Software Engineer',
+      image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80',
+      description: ''
     }
-    return DEFAULT_MEMBERS;
-  });
-
-  // Edit Image Modal State
-  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
-  const [newImageUrl, setNewImageUrl] = useState<string>('');
-  const [newName, setNewName] = useState<string>('');
-  const [newRole, setNewRole] = useState<string>('');
-  const [newDesc, setNewDesc] = useState<string>('');
-
-  useEffect(() => {
-    localStorage.setItem('hms_team_members', JSON.stringify(teamMembers));
-  }, [teamMembers]);
+  ];
 
   useEffect(() => {
     const fetchHotelsData = async () => {
@@ -149,34 +122,6 @@ export const HomePage: React.FC = () => {
 
   const prevSlide = () => {
     setSlideIndex((prev) => (prev <= 0 ? maxSlide : prev - 1));
-  };
-
-  const openImageModal = (member: TeamMember) => {
-    setEditingMember(member);
-    setNewImageUrl(member.image);
-    setNewName(member.name);
-    setNewRole(member.role);
-    setNewDesc(member.description);
-  };
-
-  const handleSaveMemberImage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingMember) return;
-
-    setTeamMembers(prev => prev.map(m => {
-      if (m.id === editingMember.id) {
-        return {
-          ...m,
-          name: newName || m.name,
-          role: newRole || m.role,
-          image: newImageUrl || m.image,
-          description: newDesc
-        };
-      }
-      return m;
-    }));
-
-    setEditingMember(null);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -424,7 +369,7 @@ export const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* About Us / Team Members Section with Profile Image Link Attachment */}
+      {/* About Us / Team Members Section */}
       <div className="space-y-6 pt-8 border-t border-acc-200 dark:border-acc-800">
         
         {/* Centered Formal Section Header */}
@@ -449,20 +394,10 @@ export const HomePage: React.FC = () => {
           {teamMembers.map((member) => (
             <div
               key={member.id}
-              className="bg-white dark:bg-acc-900 border border-acc-200 dark:border-acc-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all space-y-4 text-center group hover:border-brand-500/60 relative"
+              className="bg-white dark:bg-acc-900 border border-acc-200 dark:border-acc-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all space-y-4 text-center group hover:border-brand-500/60"
             >
-              {/* Image Edit Trigger Badge Button */}
-              <button
-                type="button"
-                onClick={() => openImageModal(member)}
-                className="absolute top-3 right-3 p-1.5 bg-acc-100 dark:bg-acc-800 hover:bg-brand-500 hover:text-acc-950 text-acc-600 dark:text-acc-300 rounded-full transition-colors text-xs shadow-xs"
-                title="Attach Custom Profile Image URL"
-              >
-                <Image size={14} />
-              </button>
-
               {/* Small Round Profile Picture Icon */}
-              <div className="relative inline-block mx-auto cursor-pointer" onClick={() => openImageModal(member)}>
+              <div className="relative inline-block mx-auto">
                 <img
                   src={member.image}
                   alt={member.name}
@@ -471,7 +406,7 @@ export const HomePage: React.FC = () => {
               </div>
 
               {/* Name & Title Banner Pill */}
-              <div className="bg-brand-500 text-acc-950 py-2.5 px-3 rounded-xl font-sans shadow-xs relative">
+              <div className="bg-brand-500 text-acc-950 py-2.5 px-3 rounded-xl font-sans shadow-xs">
                 <h3 className="font-extrabold text-xs tracking-tight">
                   {member.name}
                 </h3>
@@ -487,128 +422,11 @@ export const HomePage: React.FC = () => {
                 </span>
               </div>
 
-              {/* Attach Image URL Link Button */}
-              <button
-                type="button"
-                onClick={() => openImageModal(member)}
-                className="w-full py-1.5 bg-acc-100 dark:bg-acc-800 hover:bg-brand-500 hover:text-acc-950 text-acc-800 dark:text-acc-200 font-mono text-[11px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5"
-              >
-                <PencilSimple size={13} />
-                <span>Attach Image Link</span>
-              </button>
-
             </div>
           ))}
         </div>
 
       </div>
-
-      {/* Edit Profile Image URL Modal */}
-      {editingMember && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-acc-900 border border-acc-200 dark:border-acc-700 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            
-            <div className="flex items-center justify-between border-b border-acc-100 dark:border-acc-800 pb-3">
-              <h3 className="text-sm font-bold text-acc-950 dark:text-acc-50 flex items-center gap-2">
-                <Image size={18} className="text-brand-500" />
-                <span>Attach Profile Picture URL</span>
-              </h3>
-              <button
-                onClick={() => setEditingMember(null)}
-                className="p-1 text-acc-400 hover:text-acc-700 dark:hover:text-acc-200"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Live Image Preview */}
-            <div className="text-center space-y-2">
-              <img
-                src={newImageUrl || editingMember.image}
-                alt="Preview"
-                className="w-20 h-20 rounded-full object-cover border-4 border-brand-500 shadow-md mx-auto"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
-                }}
-              />
-              <p className="text-[10px] text-acc-400 font-mono">Live Profile Image Preview</p>
-            </div>
-
-            <form onSubmit={handleSaveMemberImage} className="space-y-3 font-mono text-xs">
-              
-              <div>
-                <label className="block font-medium mb-1 text-acc-700 dark:text-acc-300">
-                  Profile Picture Image URL *
-                </label>
-                <input
-                  type="url"
-                  required
-                  placeholder="https://example.com/profile-picture.jpg"
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  className="w-full px-3 py-2 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block font-medium mb-1 text-acc-700 dark:text-acc-300">
-                  Member Name
-                </label>
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-3 py-2 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block font-medium mb-1 text-acc-700 dark:text-acc-300">
-                  Member Role / Designation
-                </label>
-                <input
-                  type="text"
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
-                  className="w-full px-3 py-2 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block font-medium mb-1 text-acc-700 dark:text-acc-300">
-                  Bio / Description (Optional)
-                </label>
-                <textarea
-                  rows={2}
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                  placeholder="Enter optional description note..."
-                  className="w-full px-3 py-2 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-sans"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-acc-100 dark:border-acc-800">
-                <button
-                  type="button"
-                  onClick={() => setEditingMember(null)}
-                  className="px-3 py-1.5 border border-acc-300 dark:border-acc-700 text-xs rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 bg-brand-500 hover:bg-brand-600 text-acc-950 font-bold text-xs rounded flex items-center gap-1 shadow"
-                >
-                  <CheckCircle size={15} />
-                  <span>Attach & Save Image</span>
-                </button>
-              </div>
-
-            </form>
-
-          </div>
-        </div>
-      )}
 
     </div>
   );
