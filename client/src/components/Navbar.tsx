@@ -67,7 +67,7 @@ export const Navbar: React.FC = () => {
               )}
             </div>
             <p className={`text-[10px] font-mono ${isStaff ? 'text-acc-400' : 'text-acc-500 dark:text-acc-400'}`}>
-              {isStaff ? 'Operations & Inventory Management' : 'Bangladesh Hospitality Network (BDT ৳)'}
+              {isStaff ? 'Operations & Inventory Management' : 'Hotel booking, made effortlessly simple'}
             </p>
           </div>
         </Link>
