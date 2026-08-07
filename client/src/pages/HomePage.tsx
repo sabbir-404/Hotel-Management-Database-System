@@ -9,7 +9,9 @@ import {
   ArrowRight,
   Buildings,
   Star,
-  Eye
+  Eye,
+  CaretLeft,
+  CaretRight
 } from '@phosphor-icons/react';
 
 interface TeamMember {
@@ -23,10 +25,14 @@ export const HomePage: React.FC = () => {
   const navigate = useNavigate();
 
   const [hotels, setHotels] = useState<Hotel[]>([]);
-  const [dbRegions, setDbRegions] = useState<string[]>(['Dhaka', 'Cox\'s Bazar', 'Sylhet']);
+  const [dbRegions, setDbRegions] = useState<string[]>(['Dhaka', 'Cox\'s Bazar', 'Sylhet', 'Chittagong', 'Rangamati', 'Sreemangal']);
   const [selectedRegion, setSelectedRegion] = useState<string>('Dhaka');
   const [checkIn, setCheckIn] = useState<string>(new Date().toISOString().split('T')[0]);
   const [checkOut, setCheckOut] = useState<string>(new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0]);
+
+  // Carousel Slider State
+  const [slideIndex, setSlideIndex] = useState<number>(0);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
 
   // 6 Team Members list with placeholder profile images and empty description boxes
   const teamMembers: TeamMember[] = [
@@ -81,6 +87,29 @@ export const HomePage: React.FC = () => {
     fetchHotelsData();
   }, []);
 
+  // Calculate max slides for carousel (assuming 3 visible per view)
+  const itemsPerView = 3;
+  const maxSlide = Math.max(0, hotels.length - itemsPerView);
+
+  // Auto-slide effect every 3.5 seconds
+  useEffect(() => {
+    if (isHovered || hotels.length <= itemsPerView) return;
+
+    const timer = setInterval(() => {
+      setSlideIndex((prev) => (prev >= maxSlide ? 0 : prev + 1));
+    }, 3500);
+
+    return () => clearInterval(timer);
+  }, [hotels, maxSlide, isHovered]);
+
+  const nextSlide = () => {
+    setSlideIndex((prev) => (prev >= maxSlide ? 0 : prev + 1));
+  };
+
+  const prevSlide = () => {
+    setSlideIndex((prev) => (prev <= 0 ? maxSlide : prev - 1));
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     navigate(`/hotels?destination=${encodeURIComponent(selectedRegion)}&checkIn=${checkIn}&checkOut=${checkOut}`);
@@ -89,10 +118,9 @@ export const HomePage: React.FC = () => {
   return (
     <div className="space-y-8 pb-12 page-fade-enter max-w-5xl mx-auto">
       
-      {/* Top Banner Hero Header (Booking.com style without category tabs) */}
+      {/* Top Banner Hero Header */}
       <div className="rounded-xl overflow-hidden bg-brand-900 dark:bg-acc-900 text-white p-6 md:p-10 space-y-6 shadow-md border border-brand-800 dark:border-acc-800">
         
-        {/* Greeting Headline & Subtitle */}
         <div className="space-y-2">
           <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">
             Where to next, {user?.name ? user.name.split(' ')[0] : 'Guest'}?
@@ -102,14 +130,13 @@ export const HomePage: React.FC = () => {
           </p>
         </div>
 
-        {/* Search Bar Container: Region Dropdown + Check-in/out Dates + Search CTA */}
+        {/* Search Bar Container */}
         <form
           onSubmit={handleSearchSubmit}
           className="bg-amber-400 p-1 rounded-xl shadow-lg border-2 border-amber-500 text-acc-950"
         >
           <div className="bg-white dark:bg-acc-900 rounded-lg grid grid-cols-1 md:grid-cols-12 gap-1 p-1 items-center">
             
-            {/* 1. Region / City Dropdown (Database Hotel Regions) */}
             <div className="md:col-span-5 flex items-center gap-2 px-3 py-2 border-b md:border-b-0 md:border-r border-acc-200 dark:border-acc-700">
               <MapPin size={20} className="text-amber-600 shrink-0" />
               <div className="w-full">
@@ -130,7 +157,6 @@ export const HomePage: React.FC = () => {
               </div>
             </div>
 
-            {/* 2. Select Dates */}
             <div className="md:col-span-5 flex items-center gap-2 px-3 py-2 border-b md:border-b-0 md:border-r border-acc-200 dark:border-acc-700">
               <CalendarBlank size={20} className="text-acc-500 shrink-0" />
               <div className="w-full grid grid-cols-2 gap-2">
@@ -159,7 +185,6 @@ export const HomePage: React.FC = () => {
               </div>
             </div>
 
-            {/* 3. Search CTA Button */}
             <div className="md:col-span-2 p-1">
               <button
                 type="submit"
@@ -175,73 +200,117 @@ export const HomePage: React.FC = () => {
 
       </div>
 
-      {/* Trending Hotels Section (Below Search Bar, Above Featured Hotel Regions) */}
+      {/* Trending Hotels Section with Auto-Sliding Carousel */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-sm font-extrabold tracking-tight text-acc-950 dark:text-acc-50 flex items-center gap-2">
               <Buildings size={18} className="text-brand-500" />
-              <span>Trending Hotels</span>
+              <span>Trending Hotels ({hotels.length} Available)</span>
             </h2>
             <p className="text-xs text-acc-500 font-sans">
               Popular Bangladesh hotels currently available in our database
             </p>
           </div>
-          <Link
-            to="/hotels"
-            className="text-xs font-mono font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1"
-          >
-            <span>View All Hotels</span>
-            <ArrowRight size={12} />
-          </Link>
+
+          <div className="flex items-center gap-3">
+            <Link
+              to="/hotels"
+              className="text-xs font-mono font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1"
+            >
+              <span>View All</span>
+              <ArrowRight size={12} />
+            </Link>
+
+            {/* Manual Carousel Control Chevrons */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={prevSlide}
+                className="p-1.5 rounded-full border border-acc-200 dark:border-acc-700 bg-white dark:bg-acc-900 text-acc-800 dark:text-acc-200 hover:bg-brand-500 hover:text-acc-950 transition-colors shadow-xs"
+                title="Previous Hotel Slide"
+              >
+                <CaretLeft size={14} />
+              </button>
+              <button
+                onClick={nextSlide}
+                className="p-1.5 rounded-full border border-acc-200 dark:border-acc-700 bg-white dark:bg-acc-900 text-acc-800 dark:text-acc-200 hover:bg-brand-500 hover:text-acc-950 transition-colors shadow-xs"
+                title="Next Hotel Slide"
+              >
+                <CaretRight size={14} />
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Hotel Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {hotels.map((hotel) => (
-            <div
-              key={hotel.Hotel_ID}
-              className="bg-white dark:bg-acc-900 border border-acc-200 dark:border-acc-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between group"
-            >
-              {/* Hotel Image */}
-              <div className="relative h-44 overflow-hidden bg-acc-100 dark:bg-acc-800">
-                <img
-                  src={hotel.Image_Url || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80'}
-                  alt={hotel.Hotel_Name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute top-3 right-3 bg-acc-950/80 backdrop-blur-sm text-amber-400 px-2 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1 border border-acc-700">
-                  <Star size={12} weight="fill" />
-                  <span>{hotel.Star_Rating || 5}-Star</span>
-                </div>
-              </div>
-
-              {/* Hotel Details */}
-              <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-                <div className="space-y-1">
-                  <h3 className="font-extrabold text-sm text-acc-950 dark:text-acc-50 group-hover:text-brand-500 transition-colors">
-                    {hotel.Hotel_Name}
-                  </h3>
-                  <div className="flex items-center gap-1.5 text-xs text-acc-500 font-sans">
-                    <MapPin size={14} className="text-amber-500 shrink-0" />
-                    <span>{hotel.Address ? `${hotel.Address}, ` : ''}{hotel.City} Destination</span>
+        {/* Auto-Sliding Carousel Container */}
+        <div 
+          className="relative overflow-hidden py-1"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <div 
+            className="flex transition-transform duration-500 ease-out gap-5"
+            style={{ transform: `translateX(-${slideIndex * (100 / itemsPerView)}%)` }}
+          >
+            {hotels.map((hotel) => (
+              <div
+                key={hotel.Hotel_ID}
+                className="w-full md:w-[calc(33.333%-13.33px)] shrink-0 bg-white dark:bg-acc-900 border border-acc-200 dark:border-acc-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between group"
+              >
+                {/* Hotel Image */}
+                <div className="relative h-44 overflow-hidden bg-acc-100 dark:bg-acc-800">
+                  <img
+                    src={hotel.Image_Url || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80'}
+                    alt={hotel.Hotel_Name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute top-3 right-3 bg-acc-950/80 backdrop-blur-sm text-amber-400 px-2 py-1 rounded text-[10px] font-mono font-bold flex items-center gap-1 border border-acc-700">
+                    <Star size={12} weight="fill" />
+                    <span>{hotel.Star_Rating || 5}-Star</span>
                   </div>
                 </div>
 
-                {/* View More Button */}
-                <div className="pt-2 border-t border-acc-100 dark:border-acc-800">
-                  <button
-                    onClick={() => navigate(`/hotels?destination=${encodeURIComponent(hotel.City)}`)}
-                    className="w-full py-2 bg-brand-500 hover:bg-brand-600 text-acc-950 font-extrabold text-xs rounded transition-all flex items-center justify-center gap-1.5 font-mono shadow-xs active:scale-95"
-                  >
-                    <Eye size={15} />
-                    <span>View More</span>
-                  </button>
-                </div>
-              </div>
+                {/* Hotel Details */}
+                <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <h3 className="font-extrabold text-sm text-acc-950 dark:text-acc-50 group-hover:text-brand-500 transition-colors line-clamp-1">
+                      {hotel.Hotel_Name}
+                    </h3>
+                    <div className="flex items-center gap-1.5 text-xs text-acc-500 font-sans">
+                      <MapPin size={14} className="text-amber-500 shrink-0" />
+                      <span className="line-clamp-1">{hotel.Address ? `${hotel.Address}, ` : ''}{hotel.City}</span>
+                    </div>
+                  </div>
 
-            </div>
-          ))}
+                  {/* View More Button */}
+                  <div className="pt-2 border-t border-acc-100 dark:border-acc-800">
+                    <button
+                      onClick={() => navigate(`/hotels?destination=${encodeURIComponent(hotel.City)}`)}
+                      className="w-full py-2 bg-brand-500 hover:bg-brand-600 text-acc-950 font-extrabold text-xs rounded transition-all flex items-center justify-center gap-1.5 font-mono shadow-xs active:scale-95"
+                    >
+                      <Eye size={15} />
+                      <span>View More</span>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            ))}
+          </div>
+
+          {/* Carousel Pagination Dots */}
+          <div className="flex justify-center gap-1.5 pt-4">
+            {Array.from({ length: maxSlide + 1 }).map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setSlideIndex(idx)}
+                className={`h-2 rounded-full transition-all ${
+                  slideIndex === idx ? 'w-6 bg-brand-500' : 'w-2 bg-acc-300 dark:bg-acc-700'
+                }`}
+                title={`Go to slide ${idx + 1}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
 

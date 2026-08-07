@@ -34,7 +34,6 @@ async function initDb() {
 
     // Get list of all tables
     const [tables] = await connection.query(`SHOW TABLES;`);
-    const tableKey = `Tables_in_${dbName.toLowerCase()}`;
     
     for (const row of tables) {
       const tableName = Object.values(row)[0];
@@ -77,13 +76,16 @@ async function initDb() {
     try { await connection.query(`ALTER TABLE Room ADD COLUMN Sale_Rate DECIMAL(10,2);`); } catch (e) {}
     try { await connection.query(`ALTER TABLE Room ADD COLUMN Room_Description TEXT;`); } catch (e) {}
 
-    // Clear & Seed clean dataset
-    console.log('Seeding Bangladesh Hotels (Dhaka, Cox\'s Bazar, Sylhet)...');
+    // Seed 6 Hotels in Bangladesh
+    console.log('Seeding 6 Bangladesh Hotels (Dhaka, Cox\'s Bazar, Sylhet, Chittagong, Rangamati, Sreemangal)...');
     await connection.query(`
       INSERT INTO Hotel (Hotel_ID, Hotel_Name, Address, City, Contact_Number, Star_Rating, Image_Url) VALUES
       (1, 'Hotel.com Grand Palace', '78 Gulshan Avenue, Block SE(F)', 'Dhaka', '+880-1711-001122', 5, 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80'),
       (2, 'Hotel.com Bay Breeze Resort', 'Kolatoli Beach Road', 'Cox''s Bazar', '+880-1819-334455', 4, 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80'),
-      (3, 'Hotel.com Tea Garden Lodge', 'Zindabazar Commercial Area', 'Sylhet', '+880-1912-667788', 4, 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=800&q=80');
+      (3, 'Hotel.com Tea Garden Lodge', 'Zindabazar Commercial Area', 'Sylhet', '+880-1912-667788', 4, 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=800&q=80'),
+      (4, 'Hotel.com Cloud Nine Resort', 'Agrabad Commercial Area', 'Chittagong', '+880-1311-445566', 5, 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80'),
+      (5, 'Hotel.com Lakeside Haven', 'Kaptai Lake Road', 'Rangamati', '+880-1411-778899', 4, 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=800&q=80'),
+      (6, 'Hotel.com Heritage Eco Lodge', 'Grand Trunk Road', 'Sreemangal', '+880-1511-223344', 4, 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80');
     `);
 
     // Seed Persons (Bangladeshi Guests and Staff)
@@ -112,7 +114,7 @@ async function initDb() {
       (5, 1, 'Front Desk Executive', 45000.00, '2024-06-15', 'Active');
     `);
 
-    // Seed Rooms with BDT Rates (৳), Sale Rates, and Real Room Descriptions
+    // Seed Rooms across all 6 hotels with BDT Rates (৳), Sale Rates, and Real Room Descriptions
     console.log('Seeding Rooms (BDT ৳ rates & sale rates)...');
     await connection.query(`
       INSERT INTO Room (Room_ID, Hotel_ID, Room_Number, Room_Type, Floor_Number, Capacity, Nightly_Rate, Sale_Rate, Room_Description, Availability_Status) VALUES
@@ -122,7 +124,10 @@ async function initDb() {
       (4, 1, '301', 'Deluxe', 3, 4, 14000.00, 12000.00, 'Deluxe Family Suite • 2 King beds • Air conditioning • Complimentary breakfast tray', 'Available'),
       (5, 2, 'A1', 'Double', 1, 2, 7000.00, 5500.00, 'Beachfront Sea View Room • Private balcony • Air conditioning • Free cancellation', 'Available'),
       (6, 2, 'B2', 'Suite', 2, 4, 22000.00, 18000.00, 'Oceanfront Luxury Villa Suite • Swimming pool access • Free breakfast • Private terrace', 'Available'),
-      (7, 3, 'T101', 'Deluxe', 1, 2, 5000.00, 4000.00, 'Tea Garden View Eco Lodge • King bed • Air conditioning • Organic herbal breakfast', 'Available');
+      (7, 3, 'T101', 'Deluxe', 1, 2, 5000.00, 4000.00, 'Tea Garden View Eco Lodge • King bed • Air conditioning • Organic herbal breakfast', 'Available'),
+      (8, 4, 'C101', 'Suite', 1, 2, 12000.00, 9500.00, 'Chittagong Port View Executive Suite • King Bed • Free Wi-Fi • Buffet Breakfast', 'Available'),
+      (9, 5, 'R201', 'Deluxe', 2, 2, 6500.00, 5000.00, 'Kaptai Lakefront Cottage • Hill balcony view • Kayak boat rental included', 'Available'),
+      (10, 6, 'S301', 'Double', 3, 3, 7500.00, 6000.00, 'Sreemangal Rainforest Bungalow • Tea tasting tour included • Complimentary breakfast', 'Available');
     `);
 
     // Seed Services
@@ -163,7 +168,7 @@ async function initDb() {
       (1, 2, 2, 2, 2400.00);
     `);
 
-    console.log('Database successfully cleaned and re-seeded with valid tablespaces!');
+    console.log('Database successfully cleaned and re-seeded with 6 Bangladesh hotels!');
     await connection.end();
   } catch (error) {
     console.error('Database Initialization Failed:', error.message);
