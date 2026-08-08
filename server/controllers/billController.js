@@ -75,6 +75,53 @@ exports.getBillById = async (req, res, next) => {
   }
 };
 
+exports.updateBill = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { Payment_Status, Payment_Method, Discounts, Taxes, Total_Amount } = req.body;
+
+    const [existing] = await db.query('SELECT * FROM Bill WHERE Bill_ID = ?', [id]);
+    if (existing.length === 0) {
+      return res.status(404).json({ error: 'Bill record not found' });
+    }
+
+    await db.query(
+      `UPDATE Bill SET
+        Payment_Status = COALESCE(?, Payment_Status),
+        Payment_Method = COALESCE(?, Payment_Method),
+        Discounts = COALESCE(?, Discounts),
+        Taxes = COALESCE(?, Taxes),
+        Total_Amount = COALESCE(?, Total_Amount)
+       WHERE Bill_ID = ?`,
+      [
+        Payment_Status || null,
+        Payment_Method || null,
+        Discounts !== undefined ? Discounts : null,
+        Taxes !== undefined ? Taxes : null,
+        Total_Amount !== undefined ? Total_Amount : null,
+        id
+      ]
+    );
+
+    const [updated] = await db.query(`
+      SELECT b.*, (b.Total_Amount + b.Taxes - b.Discounts) as Final_Amount,
+             r.Check_In_Date, r.Check_Out_Date, r.Guest_ID,
+             g.Full_Name, g.Email, g.Phone_Number,
+             rm.Room_Number, rm.Room_Type, h.Hotel_Name
+      FROM Bill b
+      JOIN Reservation r ON b.Reservation_ID = r.Reservation_ID
+      JOIN Guest g ON r.Guest_ID = g.Guest_ID
+      JOIN Room rm ON r.Room_ID = rm.Room_ID
+      JOIN Hotel h ON rm.Hotel_ID = h.Hotel_ID
+      WHERE b.Bill_ID = ?
+    `, [id]);
+
+    res.json(mapBillFields(updated[0]));
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.generateBill = async (req, res, next) => {
   const connection = await db.getConnection();
   try {
@@ -121,7 +168,7 @@ exports.generateBill = async (req, res, next) => {
 
     let totalServiceCharge = 0;
     serviceRecords.forEach(sr => {
-      totalServiceCharge += parseFloat(sr.Charge || 0);
+      totalServiceCharge += parseFloat(sr.Charge || sr.Total_Cost || 0);
     });
 
     const subtotal = roomCharge + totalServiceCharge;

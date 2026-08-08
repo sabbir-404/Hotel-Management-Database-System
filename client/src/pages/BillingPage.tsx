@@ -44,6 +44,15 @@ export const BillingPage: React.FC = () => {
     fetchData();
   }, []);
 
+  const handleStatusChange = async (billId: number, newStatus: string) => {
+    try {
+      await api.put(`/bills/${billId}`, { Payment_Status: newStatus });
+      fetchData();
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to update payment status');
+    }
+  };
+
   const handleGenerateBill = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedResId) return;
@@ -97,18 +106,18 @@ export const BillingPage: React.FC = () => {
 
     doc.setFont('helvetica', 'bold');
     doc.text('Item Breakdown', 14, 66);
-    doc.text('Amount ($)', 170, 66);
+    doc.text('Amount (BDT)', 160, 66);
 
     let y = 74;
     doc.setFont('helvetica', 'normal');
-    doc.text(`Room Stay (${viewBill.Total_Nights || 1} Night(s) @ $${Number(viewBill.Nightly_Rate || 0).toFixed(2)})`, 14, y);
-    doc.text(`$${(Number(viewBill.Nightly_Rate || 0) * Number(viewBill.Total_Nights || 1)).toFixed(2)}`, 170, y);
+    doc.text(`Room Stay (${viewBill.Total_Nights || 1} Night(s) @ BDT ${Number(viewBill.Nightly_Rate || 0).toLocaleString()})`, 14, y);
+    doc.text(`BDT ${Number(Number(viewBill.Nightly_Rate || 0) * Number(viewBill.Total_Nights || 1)).toLocaleString()}`, 160, y);
     y += 8;
 
     if (viewBill.items && viewBill.items.length > 0) {
       viewBill.items.forEach(item => {
         doc.text(`${item.Service_Name || 'Service Charge'} (Qty: ${item.Quantity})`, 14, y);
-        doc.text(`$${Number(item.Charge).toFixed(2)}`, 170, y);
+        doc.text(`BDT ${Number(item.Charge || item.Total_Cost || 0).toLocaleString()}`, 160, y);
         y += 8;
       });
     }
@@ -116,17 +125,17 @@ export const BillingPage: React.FC = () => {
     doc.line(14, y, 196, y);
     y += 8;
 
-    doc.text(`Subtotal:`, 130, y);
-    doc.text(`$${Number(viewBill.Total_Amount).toFixed(2)}`, 170, y);
+    doc.text(`Subtotal:`, 120, y);
+    doc.text(`BDT ${Number(viewBill.Total_Amount).toLocaleString()}`, 160, y);
     y += 6;
-    doc.text(`Discounts (-):`, 130, y);
-    doc.text(`$${Number(viewBill.Discounts).toFixed(2)}`, 170, y);
+    doc.text(`Discounts (-):`, 120, y);
+    doc.text(`BDT ${Number(viewBill.Discounts).toLocaleString()}`, 160, y);
     y += 8;
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
-    doc.text(`Final Amount:`, 130, y);
-    doc.text(`$${Number(viewBill.Final_Amount).toFixed(2)}`, 170, y);
+    doc.text(`Final Amount:`, 120, y);
+    doc.text(`BDT ${Number(viewBill.Final_Amount).toLocaleString()}`, 160, y);
 
     doc.save(`Invoice_INV-${viewBill.Bill_ID}.pdf`);
   };
@@ -142,7 +151,7 @@ export const BillingPage: React.FC = () => {
             Billing & Invoice Management
           </h1>
           <p className="text-xs text-acc-500 font-mono">
-            Automated Pricing: Room Charge + Services - Discount
+            Automated Pricing: Room Charge + Services - Discount (BDT ৳)
           </p>
         </div>
 
@@ -196,12 +205,30 @@ export const BillingPage: React.FC = () => {
                     <td className="p-3">{new Date(b.Billing_Date).toLocaleDateString()}</td>
                     <td className="p-3">{b.Payment_Method}</td>
                     <td className="p-3 font-bold text-acc-950 dark:text-acc-50">
-                      ৳{Number(b.Final_Amount).toLocaleString('en-US')}
+                      BDT ৳{Number(b.Final_Amount).toLocaleString('en-US')}
                     </td>
                     <td className="p-3">
-                      <span className={`badge-pill border ${b.Payment_Status === 'Paid' ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800'}`}>
-                        {b.Payment_Status}
-                      </span>
+                      {canGenerate ? (
+                        <select
+                          value={b.Payment_Status}
+                          onChange={(e) => handleStatusChange(b.Bill_ID, e.target.value)}
+                          className={`px-2 py-1 text-xs rounded border font-mono font-bold cursor-pointer outline-none ${
+                            b.Payment_Status === 'Paid'
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
+                              : b.Payment_Status === 'Cancelled'
+                              ? 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950 dark:text-red-300'
+                              : 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300'
+                          }`}
+                        >
+                          <option value="Paid">Paid</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                      ) : (
+                        <span className={`badge-pill border ${b.Payment_Status === 'Paid' ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800'}`}>
+                          {b.Payment_Status}
+                        </span>
+                      )}
                     </td>
                     <td className="p-3 text-right">
                       <button
@@ -222,19 +249,19 @@ export const BillingPage: React.FC = () => {
 
       {/* Generate Bill Modal */}
       {genModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-acc-900 border border-acc-200 dark:border-acc-700 rounded-lg max-w-md w-full p-6 shadow-xl space-y-4">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-acc-900 border border-acc-200 dark:border-acc-700 rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
             <h3 className="text-base font-bold text-acc-950 dark:text-acc-50 border-b border-acc-100 dark:border-acc-800 pb-2">
               Generate Final Guest Bill
             </h3>
 
-            <form onSubmit={handleGenerateBill} className="space-y-3">
+            <form onSubmit={handleGenerateBill} className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-medium mb-1">Select Checked In Reservation *</label>
+                <label className="block font-medium mb-1">Select Checked In Reservation *</label>
                 <select
                   value={selectedResId}
                   onChange={(e) => setSelectedResId(parseInt(e.target.value))}
-                  className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
+                  className="w-full px-3 py-2 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono"
                 >
                   {activeReservations.length === 0 ? (
                     <option value={0}>No checked-in guests awaiting billing</option>
@@ -249,27 +276,28 @@ export const BillingPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Payment Method</label>
+                <label className="block font-medium mb-1">Payment Method</label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value as any)}
-                  className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
+                  className="w-full px-3 py-2 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono"
                 >
                   <option value="Card">Credit/Debit Card</option>
                   <option value="Cash">Cash</option>
-                  <option value="Mobile Banking">Mobile Banking</option>
+                  <option value="Mobile Banking">Mobile Banking (bKash / Nagad)</option>
                   <option value="Bank Transfer">Bank Transfer</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Discount ($)</label>
+                <label className="block font-medium mb-1">Discount (BDT ৳)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={discountsInput}
                   onChange={(e) => setDiscountsInput(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
+                  className="w-full px-3 py-2 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono"
+                  placeholder="0.00"
                 />
               </div>
 
@@ -277,14 +305,14 @@ export const BillingPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setGenModalOpen(false)}
-                  className="px-3 py-1.5 border border-acc-300 text-xs rounded hover:bg-acc-100"
+                  className="px-3.5 py-2 border border-acc-300 text-xs rounded-xl"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!selectedResId}
-                  className="px-4 py-1.5 bg-acc-950 text-white dark:bg-brand-500 dark:text-acc-950 font-semibold text-xs rounded disabled:opacity-50"
+                  className="px-4 py-2 bg-brand-500 text-acc-950 font-bold text-xs rounded-xl disabled:opacity-50 font-mono"
                 >
                   Generate Invoice
                 </button>
@@ -296,8 +324,8 @@ export const BillingPage: React.FC = () => {
 
       {/* Printable / Downloadable Invoice Modal Statement */}
       {viewBill && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-acc-900 border border-acc-200 dark:border-acc-700 rounded-lg max-w-2xl w-full p-8 shadow-2xl space-y-6">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-acc-900 border border-acc-200 dark:border-acc-700 rounded-2xl max-w-2xl w-full p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             
             {/* Invoice Top Actions */}
             <div className="flex items-center justify-between border-b border-acc-200 dark:border-acc-800 pb-4">
@@ -307,21 +335,21 @@ export const BillingPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handlePrint}
-                  className="flex items-center gap-1.5 px-3 py-1.5 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono hover:bg-acc-100"
+                  className="flex items-center gap-1.5 px-3 py-2 border border-acc-300 dark:border-acc-700 rounded-xl text-xs font-mono hover:bg-acc-100"
                 >
                   <Printer size={15} />
                   <span>Print Invoice</span>
                 </button>
                 <button
                   onClick={handleDownloadPDF}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-acc-950 text-white dark:bg-brand-500 dark:text-acc-950 rounded text-xs font-mono font-semibold"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-acc-950 text-white dark:bg-brand-500 dark:text-acc-950 rounded-xl text-xs font-mono font-semibold"
                 >
                   <DownloadSimple size={15} />
                   <span>Download PDF</span>
                 </button>
                 <button
                   onClick={() => setViewBill(null)}
-                  className="px-3 py-1.5 border border-acc-300 text-xs rounded hover:bg-acc-100"
+                  className="px-3.5 py-2 border border-acc-300 text-xs rounded-xl"
                 >
                   Close
                 </button>
@@ -334,7 +362,7 @@ export const BillingPage: React.FC = () => {
                 <div>
                   <h2 className="text-lg font-bold tracking-tight">{viewBill.Hotel_Name}</h2>
                   <p className="text-xs text-acc-500 font-mono">{viewBill.City} Hotel Branch</p>
-                  <p className="text-xs text-acc-500 font-mono">Contact: {viewBill.Hotel_Contact || '+1-555-0192'}</p>
+                  <p className="text-xs text-acc-500 font-mono">Contact: {viewBill.Hotel_Contact || '+880-1711-001122'}</p>
                 </div>
                 <div className="text-right">
                   <h3 className="text-xl font-bold font-mono text-acc-900 dark:text-acc-100">INVOICE</h3>
@@ -344,7 +372,7 @@ export const BillingPage: React.FC = () => {
               </div>
 
               {/* Guest & Reservation Details */}
-              <div className="grid grid-cols-2 gap-4 p-3 bg-acc-50 dark:bg-acc-800/60 rounded border border-acc-200 dark:border-acc-700 text-xs font-mono">
+              <div className="grid grid-cols-2 gap-4 p-3 bg-acc-50 dark:bg-acc-800/60 rounded-xl border border-acc-200 dark:border-acc-700 text-xs font-mono">
                 <div>
                   <p className="text-[10px] uppercase text-acc-500 font-semibold">Billed To Guest</p>
                   <p className="font-bold text-sm text-acc-950 dark:text-acc-50 mt-0.5">{viewBill.First_Name} {viewBill.Last_Name}</p>
@@ -365,20 +393,20 @@ export const BillingPage: React.FC = () => {
                   <tr>
                     <th className="p-2 border-b border-acc-200 dark:border-acc-700">Description</th>
                     <th className="p-2 border-b border-acc-200 dark:border-acc-700 text-center">Qty / Nights</th>
-                    <th className="p-2 border-b border-acc-200 dark:border-acc-700 text-right">Amount</th>
+                    <th className="p-2 border-b border-acc-200 dark:border-acc-700 text-right">Amount (BDT ৳)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-acc-200 dark:divide-acc-700">
                   <tr>
-                    <td className="p-2">Room Accommodation Charge (${viewBill.Nightly_Rate}/night)</td>
+                    <td className="p-2">Room Accommodation Charge (BDT ৳{Number(viewBill.Nightly_Rate || 0).toLocaleString()}/night)</td>
                     <td className="p-2 text-center">{viewBill.Total_Nights || 1} Night(s)</td>
-                    <td className="p-2 text-right font-bold">${(Number(viewBill.Nightly_Rate || 0) * Number(viewBill.Total_Nights || 1)).toFixed(2)}</td>
+                    <td className="p-2 text-right font-bold">BDT ৳{(Number(viewBill.Nightly_Rate || 0) * Number(viewBill.Total_Nights || 1)).toLocaleString()}</td>
                   </tr>
                   {viewBill.items && viewBill.items.map((item, i) => (
                     <tr key={i}>
                       <td className="p-2">{item.Service_Name || 'Service Charge'}</td>
                       <td className="p-2 text-center">{item.Quantity}</td>
-                      <td className="p-2 text-right font-bold">${Number(item.Charge).toFixed(2)}</td>
+                      <td className="p-2 text-right font-bold">BDT ৳{Number(item.Charge || item.Total_Cost || 0).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -389,15 +417,15 @@ export const BillingPage: React.FC = () => {
                 <div className="w-64 space-y-1.5 border-t border-acc-200 dark:border-acc-700 pt-3">
                   <div className="flex justify-between text-acc-600 dark:text-acc-400">
                     <span>Subtotal:</span>
-                    <span>${Number(viewBill.Total_Amount).toFixed(2)}</span>
+                    <span>BDT ৳{Number(viewBill.Total_Amount).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-acc-600 dark:text-acc-400">
-                    <span>Discounts (-):</span>
-                    <span>${Number(viewBill.Discounts).toFixed(2)}</span>
+                    <span>Discount (-):</span>
+                    <span>BDT ৳{Number(viewBill.Discounts).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-base font-bold text-acc-950 dark:text-acc-50 border-t border-acc-950 dark:border-acc-50 pt-2">
                     <span>Final Amount:</span>
-                    <span>${Number(viewBill.Final_Amount).toFixed(2)}</span>
+                    <span>BDT ৳{Number(viewBill.Final_Amount).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
