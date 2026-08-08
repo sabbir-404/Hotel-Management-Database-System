@@ -10,6 +10,7 @@ router.delete('/:id', authenticateToken, authorizeRoles('Admin'), serviceControl
 
 // Service Records
 router.get('/records', authenticateToken, serviceController.getGuestServiceRecords);
-router.post('/assign', authenticateToken, authorizeRoles('Admin', 'Manager', 'Receptionist'), serviceController.assignServiceToGuest);
+router.post('/assign', authenticateToken, serviceController.assignServiceToGuest);
+router.post('/records', authenticateToken, serviceController.assignServiceToGuest);
 
 module.exports = router;

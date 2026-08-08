@@ -18,11 +18,6 @@ export const GuestLoginPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const fillSampleGuest = () => {
-    setEmailOrUsername('tanvir.rahman@example.com');
-    setPassword('password');
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -30,7 +25,7 @@ export const GuestLoginPage: React.FC = () => {
 
     try {
       await guestLogin(emailOrUsername, password);
-      navigate('/my-bookings');
+      navigate('/guest-dashboard');
     } catch (err: any) {
       setErrorMsg(err.message || 'Customer login failed. Please check your Email ID / Username and Password.');
       setIsSubmitting(false);
@@ -43,32 +38,14 @@ export const GuestLoginPage: React.FC = () => {
         
         {/* Header */}
         <div className="text-center space-y-2 border-b border-acc-100 dark:border-acc-800 pb-4">
-          <div className="w-12 h-12 rounded bg-brand-500 text-acc-950 flex items-center justify-center mx-auto mb-2 font-bold shadow-sm">
-            <UserCheck size={26} />
+          <div className="inline-flex items-center justify-center p-3 bg-brand-500/10 rounded-full text-brand-600 dark:text-brand-400 mb-1">
+            <UserCheck size={28} weight="bold" />
           </div>
-          <span className="badge-pill bg-brand-500 text-acc-950 font-mono text-[9px] font-bold">CUSTOMER LOGIN</span>
           <h1 className="text-xl font-extrabold tracking-tight text-acc-950 dark:text-acc-50">
             Guest Account Sign In
           </h1>
           <p className="text-xs text-acc-500 font-sans">
             Sign in using your Email ID or Username and Password to view your hotel bookings
-          </p>
-        </div>
-
-        {/* Quick Sample Demo Badge */}
-        <div className="p-3 bg-acc-50 dark:bg-acc-850 border border-acc-200 dark:border-acc-700 rounded text-[11px] font-mono text-acc-700 dark:text-acc-300 space-y-1">
-          <div className="font-bold text-acc-950 dark:text-acc-100 flex items-center justify-between">
-            <span>Demo Guest Account:</span>
-            <button
-              type="button"
-              onClick={fillSampleGuest}
-              className="text-brand-600 dark:text-brand-400 underline font-bold hover:text-brand-500"
-            >
-              Fill Sample Credentials
-            </button>
-          </div>
-          <p className="text-[10px] text-acc-500">
-            Email / Username: <code>tanvir.rahman@example.com</code> | Password: <code>password</code>
           </p>
         </div>
 

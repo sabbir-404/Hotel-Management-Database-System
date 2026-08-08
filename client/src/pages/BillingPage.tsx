@@ -119,9 +119,6 @@ export const BillingPage: React.FC = () => {
     doc.text(`Subtotal:`, 130, y);
     doc.text(`$${Number(viewBill.Total_Amount).toFixed(2)}`, 170, y);
     y += 6;
-    doc.text(`Taxes (+):`, 130, y);
-    doc.text(`$${Number(viewBill.Taxes).toFixed(2)}`, 170, y);
-    y += 6;
     doc.text(`Discounts (-):`, 130, y);
     doc.text(`$${Number(viewBill.Discounts).toFixed(2)}`, 170, y);
     y += 8;
@@ -145,7 +142,7 @@ export const BillingPage: React.FC = () => {
             Billing & Invoice Management
           </h1>
           <p className="text-xs text-acc-500 font-mono">
-            Automated Pricing: Room Charge + Services + Taxes - Discount
+            Automated Pricing: Room Charge + Services - Discount
           </p>
         </div>
 
@@ -265,28 +262,15 @@ export const BillingPage: React.FC = () => {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium mb-1">Taxes ($) (Auto 10% if blank)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={taxesInput}
-                    onChange={(e) => setTaxesInput(e.target.value)}
-                    placeholder="Auto 10%"
-                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Discount ($)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={discountsInput}
-                    onChange={(e) => setDiscountsInput(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Discount ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={discountsInput}
+                  onChange={(e) => setDiscountsInput(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
+                />
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-acc-100 dark:border-acc-800">
@@ -406,10 +390,6 @@ export const BillingPage: React.FC = () => {
                   <div className="flex justify-between text-acc-600 dark:text-acc-400">
                     <span>Subtotal:</span>
                     <span>${Number(viewBill.Total_Amount).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-acc-600 dark:text-acc-400">
-                    <span>Taxes (+):</span>
-                    <span>${Number(viewBill.Taxes).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-acc-600 dark:text-acc-400">
                     <span>Discounts (-):</span>

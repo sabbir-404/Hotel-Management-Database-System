@@ -1,21 +1,37 @@
 const db = require('../config/db');
 
+const mapBillFields = (b) => {
+  if (!b) return b;
+  const parts = (b.Full_Name || '').split(' ');
+  const firstName = parts[0] || '';
+  const lastName = parts.slice(1).join(' ') || '';
+  const total = parseFloat(b.Total_Amount || 0);
+  const taxes = parseFloat(b.Taxes || 0);
+  const discounts = parseFloat(b.Discounts || 0);
+  const finalAmt = total + taxes - discounts;
+  return {
+    ...b,
+    First_Name: b.First_Name || firstName,
+    Last_Name: b.Last_Name || lastName,
+    Final_Amount: finalAmt
+  };
+};
+
 exports.getAllBills = async (req, res, next) => {
   try {
     const [bills] = await db.query(`
-      SELECT b.*, 
+      SELECT b.*, (b.Total_Amount + b.Taxes - b.Discounts) as Final_Amount,
              r.Check_In_Date, r.Check_Out_Date, r.Guest_ID,
-             p.First_Name, p.Last_Name, p.Email, p.Phone_Number,
+             g.Full_Name, g.Email, g.Phone_Number,
              rm.Room_Number, rm.Room_Type, h.Hotel_Name
       FROM Bill b
       JOIN Reservation r ON b.Reservation_ID = r.Reservation_ID
       JOIN Guest g ON r.Guest_ID = g.Guest_ID
-      JOIN Person p ON g.Guest_ID = p.Person_ID
       JOIN Room rm ON r.Room_ID = rm.Room_ID
       JOIN Hotel h ON rm.Hotel_ID = h.Hotel_ID
       ORDER BY b.Bill_ID DESC
     `);
-    res.json(bills);
+    res.json(bills.map(mapBillFields));
   } catch (err) {
     next(err);
   }
@@ -25,15 +41,14 @@ exports.getBillById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const [bills] = await db.query(`
-      SELECT b.*, 
+      SELECT b.*, (b.Total_Amount + b.Taxes - b.Discounts) as Final_Amount,
              r.Check_In_Date, r.Check_Out_Date, r.Guest_ID, r.Booking_Date,
-             p.First_Name, p.Last_Name, p.Email, p.Phone_Number, p.Address, g.Identification_Number,
+             g.Full_Name, g.Email, g.Phone_Number, g.Address, g.Identification_Number,
              rm.Room_Number, rm.Room_Type, rm.Nightly_Rate, h.Hotel_Name, h.City, h.Contact_Number as Hotel_Contact,
              DATEDIFF(r.Check_Out_Date, r.Check_In_Date) as Total_Nights
       FROM Bill b
       JOIN Reservation r ON b.Reservation_ID = r.Reservation_ID
       JOIN Guest g ON r.Guest_ID = g.Guest_ID
-      JOIN Person p ON g.Guest_ID = p.Person_ID
       JOIN Room rm ON r.Room_ID = rm.Room_ID
       JOIN Hotel h ON rm.Hotel_ID = h.Hotel_ID
       WHERE b.Bill_ID = ?
@@ -43,16 +58,15 @@ exports.getBillById = async (req, res, next) => {
       return res.status(404).json({ error: 'Bill not found' });
     }
 
-    const bill = bills[0];
+    const bill = mapBillFields(bills[0]);
 
-    // Fetch bill items
+    // Fetch service records linked directly to this Bill_ID
     const [items] = await db.query(`
-      SELECT bi.*, s.Service_Name, sr.Service_Date
-      FROM Bill_Item bi
-      LEFT JOIN Service_Record sr ON bi.Service_Record_ID = sr.Service_Record_ID
-      LEFT JOIN Service s ON sr.Service_ID = s.Service_ID
-      WHERE bi.Bill_ID = ?
-      ORDER BY bi.Bill_Item_No ASC
+      SELECT sr.*, s.Service_Type, COALESCE(s.Service_Name, s.Service_Type) as Service_Name, sr.Service_Date
+      FROM Service_Record sr
+      JOIN Service s ON sr.Service_ID = s.Service_ID
+      WHERE sr.Bill_ID = ?
+      ORDER BY sr.Service_Record_ID ASC
     `, [id]);
 
     res.json({ ...bill, items });
@@ -97,12 +111,12 @@ exports.generateBill = async (req, res, next) => {
     const nights = Math.max(1, reservation.Total_Nights || 1);
     const roomCharge = parseFloat(reservation.Nightly_Rate) * nights;
 
-    // Get all service records for this guest
+    // Get all unbilled service records for this guest
     const [serviceRecords] = await connection.query(`
-      SELECT sr.*, s.Service_Name
+      SELECT sr.*, s.Service_Type
       FROM Service_Record sr
       JOIN Service s ON sr.Service_ID = s.Service_ID
-      WHERE sr.Guest_ID = ?
+      WHERE sr.Guest_ID = ? AND (sr.Bill_ID IS NULL OR sr.Bill_ID = 0)
     `, [reservation.Guest_ID]);
 
     let totalServiceCharge = 0;
@@ -111,39 +125,33 @@ exports.generateBill = async (req, res, next) => {
     });
 
     const subtotal = roomCharge + totalServiceCharge;
-    const taxAmount = Taxes !== undefined ? parseFloat(Taxes) : Math.round(subtotal * 0.10 * 100) / 100; // default 10% tax
+    const taxAmount = Taxes !== undefined ? parseFloat(Taxes) : 0;
     const discountAmount = Discounts !== undefined ? parseFloat(Discounts) : 0;
-    const finalAmount = subtotal + taxAmount - discountAmount;
-    const billingDate = new Date().toISOString().split('T')[0];
 
-    // Insert into Bill (trg_bill_total trigger automatically computes Final_Amount if needed)
+    // Insert into Bill
     const [billResult] = await connection.query(
-      `INSERT INTO Bill (Reservation_ID, Billing_Date, Total_Amount, Taxes, Discounts, Final_Amount, Payment_Method, Payment_Status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'Paid')`,
+      `INSERT INTO Bill (Reservation_ID, Total_Amount, Taxes, Discounts, Payment_Method, Payment_Status)
+       VALUES (?, ?, ?, ?, ?, 'Paid')`,
       [
         Reservation_ID,
-        billingDate,
         subtotal,
         taxAmount,
         discountAmount,
-        finalAmount,
         Payment_Method || 'Card'
       ]
     );
 
     const billId = billResult.insertId;
 
-    // Populate Bill_Items for each Service_Record
-    let itemNo = 1;
-    for (const sr of serviceRecords) {
+    // Link Service_Record to this Bill_ID
+    if (serviceRecords.length > 0) {
       await connection.query(
-        `INSERT INTO Bill_Item (Bill_ID, Bill_Item_No, Service_Record_ID, Quantity, Charge)
-         VALUES (?, ?, ?, ?, ?)`,
-        [billId, itemNo++, sr.Service_Record_ID, sr.Quantity, sr.Charge]
+        `UPDATE Service_Record SET Bill_ID = ? WHERE Guest_ID = ? AND (Bill_ID IS NULL OR Bill_ID = 0)`,
+        [billId, reservation.Guest_ID]
       );
     }
 
-    // Automatically check out guest if reservation was Checked In
+    // Automatically check out guest
     await connection.query(`UPDATE Reservation SET Reservation_Status = 'Checked Out' WHERE Reservation_ID = ?`, [Reservation_ID]);
     await connection.query(`UPDATE Room SET Availability_Status = 'Available' WHERE Room_ID = ?`, [reservation.Room_ID]);
 
@@ -151,17 +159,17 @@ exports.generateBill = async (req, res, next) => {
 
     // Fetch complete bill details
     const [newBill] = await db.query(`
-      SELECT b.*, r.Check_In_Date, r.Check_Out_Date, p.First_Name, p.Last_Name, rm.Room_Number, h.Hotel_Name
+      SELECT b.*, (b.Total_Amount + b.Taxes - b.Discounts) as Final_Amount,
+             r.Check_In_Date, r.Check_Out_Date, g.Full_Name, rm.Room_Number, h.Hotel_Name
       FROM Bill b
       JOIN Reservation r ON b.Reservation_ID = r.Reservation_ID
       JOIN Guest g ON r.Guest_ID = g.Guest_ID
-      JOIN Person p ON g.Guest_ID = p.Person_ID
       JOIN Room rm ON r.Room_ID = rm.Room_ID
       JOIN Hotel h ON rm.Hotel_ID = h.Hotel_ID
       WHERE b.Bill_ID = ?
     `, [billId]);
 
-    res.status(201).json(newBill[0]);
+    res.json(mapBillFields(newBill[0]));
   } catch (err) {
     await connection.rollback();
     next(err);

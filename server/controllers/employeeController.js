@@ -1,17 +1,27 @@
 const db = require('../config/db');
 
+const mapEmployeeFields = (e) => {
+  if (!e) return e;
+  const parts = (e.Full_Name || '').split(' ');
+  const firstName = parts[0] || '';
+  const lastName = parts.slice(1).join(' ') || '';
+  return {
+    ...e,
+    First_Name: e.First_Name || firstName,
+    Last_Name: e.Last_Name || lastName
+  };
+};
+
 exports.getAllEmployees = async (req, res, next) => {
   try {
     const [employees] = await db.query(`
-      SELECT e.Employee_ID, e.Hotel_ID, e.Designation, e.Salary, e.Joining_Date, e.Employment_Status,
-             p.First_Name, p.Last_Name, p.Phone_Number, p.Email, p.Address, p.Nationality,
+      SELECT e.Employee_ID, e.Hotel_ID, e.Full_Name, e.Designation, e.Salary, e.Joining_Date, e.Employment_Status,
              h.Hotel_Name
       FROM Employee e
-      JOIN Person p ON e.Employee_ID = p.Person_ID
       JOIN Hotel h ON e.Hotel_ID = h.Hotel_ID
       ORDER BY e.Employee_ID DESC
     `);
-    res.json(employees);
+    res.json(employees.map(mapEmployeeFields));
   } catch (err) {
     next(err);
   }
@@ -21,11 +31,9 @@ exports.getEmployeeById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const [employees] = await db.query(`
-      SELECT e.Employee_ID, e.Hotel_ID, e.Designation, e.Salary, e.Joining_Date, e.Employment_Status,
-             p.First_Name, p.Last_Name, p.Phone_Number, p.Email, p.Address, p.Nationality,
+      SELECT e.Employee_ID, e.Hotel_ID, e.Full_Name, e.Designation, e.Salary, e.Joining_Date, e.Employment_Status,
              h.Hotel_Name
       FROM Employee e
-      JOIN Person p ON e.Employee_ID = p.Person_ID
       JOIN Hotel h ON e.Hotel_ID = h.Hotel_ID
       WHERE e.Employee_ID = ?
     `, [id]);
@@ -33,125 +41,88 @@ exports.getEmployeeById = async (req, res, next) => {
     if (employees.length === 0) {
       return res.status(404).json({ error: 'Employee not found' });
     }
-    res.json(employees[0]);
+    res.json(mapEmployeeFields(employees[0]));
   } catch (err) {
     next(err);
   }
 };
 
 exports.createEmployee = async (req, res, next) => {
-  const connection = await db.getConnection();
   try {
-    await connection.beginTransaction();
+    const { Full_Name, First_Name, Last_Name, Hotel_ID, Designation, Salary, Joining_Date, Employment_Status, Password } = req.body;
 
-    const { First_Name, Last_Name, Phone_Number, Email, Address, Nationality, Hotel_ID, Designation, Salary, Joining_Date, Employment_Status } = req.body;
+    const empFullName = Full_Name || `${First_Name || ''} ${Last_Name || ''}`.trim();
 
-    if (!First_Name || !Last_Name || !Phone_Number || !Hotel_ID || !Designation) {
-      await connection.rollback();
-      return res.status(400).json({ error: 'First Name, Last Name, Phone Number, Hotel, and Designation are required' });
+    if (!empFullName || !Hotel_ID || !Designation) {
+      return res.status(400).json({ error: 'Full Name, Hotel, and Designation are required' });
     }
 
-    // Insert Person
-    const [personResult] = await connection.query(
-      `INSERT INTO Person (First_Name, Last_Name, Phone_Number, Email, Address, Nationality)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [First_Name, Last_Name, Phone_Number, Email || null, Address || null, Nationality || null]
-    );
-
-    const personId = personResult.insertId;
-
-    // Insert Employee referencing Person_ID
-    await connection.query(
-      `INSERT INTO Employee (Employee_ID, Hotel_ID, Designation, Salary, Joining_Date, Employment_Status)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+    const [result] = await db.query(
+      `INSERT INTO Employee (Hotel_ID, Full_Name, Designation, Salary, Joining_Date, Employment_Status, Password)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
-        personId,
         Hotel_ID,
+        empFullName,
         Designation,
         Salary || 0.00,
         Joining_Date || new Date().toISOString().split('T')[0],
-        Employment_Status || 'Active'
+        Employment_Status || 'Active',
+        Password ? Password.trim() : 'password'
       ]
     );
 
-    await connection.commit();
+    const newEmpId = result.insertId;
 
     const [newEmp] = await db.query(`
-      SELECT e.Employee_ID, e.Hotel_ID, e.Designation, e.Salary, e.Joining_Date, e.Employment_Status,
-             p.First_Name, p.Last_Name, p.Phone_Number, p.Email, p.Address, p.Nationality,
+      SELECT e.Employee_ID, e.Hotel_ID, e.Full_Name, e.Designation, e.Salary, e.Joining_Date, e.Employment_Status,
              h.Hotel_Name
       FROM Employee e
-      JOIN Person p ON e.Employee_ID = p.Person_ID
       JOIN Hotel h ON e.Hotel_ID = h.Hotel_ID
       WHERE e.Employee_ID = ?
-    `, [personId]);
+    `, [newEmpId]);
 
-    res.status(201).json(newEmp[0]);
+    res.status(201).json(mapEmployeeFields(newEmp[0]));
   } catch (err) {
-    await connection.rollback();
     next(err);
-  } finally {
-    connection.release();
   }
 };
 
 exports.updateEmployee = async (req, res, next) => {
-  const connection = await db.getConnection();
   try {
-    await connection.beginTransaction();
-
     const { id } = req.params;
-    const { First_Name, Last_Name, Phone_Number, Email, Address, Nationality, Hotel_ID, Designation, Salary, Joining_Date, Employment_Status } = req.body;
+    const { Full_Name, First_Name, Last_Name, Hotel_ID, Designation, Salary, Joining_Date, Employment_Status, Password } = req.body;
 
-    const [existing] = await connection.query('SELECT * FROM Employee WHERE Employee_ID = ?', [id]);
+    const [existing] = await db.query('SELECT * FROM Employee WHERE Employee_ID = ?', [id]);
     if (existing.length === 0) {
-      await connection.rollback();
       return res.status(404).json({ error: 'Employee not found' });
     }
 
-    // Update Person fields
-    await connection.query(
-      `UPDATE Person SET 
-        First_Name = COALESCE(?, First_Name),
-        Last_Name = COALESCE(?, Last_Name),
-        Phone_Number = COALESCE(?, Phone_Number),
-        Email = COALESCE(?, Email),
-        Address = COALESCE(?, Address),
-        Nationality = COALESCE(?, Nationality)
-       WHERE Person_ID = ?`,
-      [First_Name, Last_Name, Phone_Number, Email, Address, Nationality, id]
-    );
+    const empFullName = Full_Name || (First_Name || Last_Name ? `${First_Name || ''} ${Last_Name || ''}`.trim() : null);
 
-    // Update Employee fields
-    await connection.query(
+    await db.query(
       `UPDATE Employee SET
         Hotel_ID = COALESCE(?, Hotel_ID),
+        Full_Name = COALESCE(?, Full_Name),
         Designation = COALESCE(?, Designation),
         Salary = COALESCE(?, Salary),
         Joining_Date = COALESCE(?, Joining_Date),
-        Employment_Status = COALESCE(?, Employment_Status)
+        Employment_Status = COALESCE(?, Employment_Status),
+        Password = COALESCE(?, Password)
        WHERE Employee_ID = ?`,
-      [Hotel_ID, Designation, Salary, Joining_Date, Employment_Status, id]
+      [Hotel_ID, empFullName, Designation, Salary, Joining_Date, Employment_Status, Password ? Password.trim() : null, id]
     );
 
-    await connection.commit();
-
     const [updated] = await db.query(`
-      SELECT e.Employee_ID, e.Hotel_ID, e.Designation, e.Salary, e.Joining_Date, e.Employment_Status,
-             p.First_Name, p.Last_Name, p.Phone_Number, p.Email, p.Address, p.Nationality,
+      SELECT e.Employee_ID, e.Hotel_ID, e.Full_Name, e.Designation, e.Salary, e.Joining_Date, e.Employment_Status,
              h.Hotel_Name
       FROM Employee e
-      JOIN Person p ON e.Employee_ID = p.Person_ID
       JOIN Hotel h ON e.Hotel_ID = h.Hotel_ID
       WHERE e.Employee_ID = ?
     `, [id]);
 
-    res.json(updated[0]);
+    res.json(mapEmployeeFields(updated[0]));
   } catch (err) {
-    await connection.rollback();
     next(err);
-  } finally {
-    connection.release();
   }
 };
 
@@ -163,7 +134,7 @@ exports.deleteEmployee = async (req, res, next) => {
       return res.status(404).json({ error: 'Employee not found' });
     }
 
-    await db.query('DELETE FROM Person WHERE Person_ID = ?', [id]);
+    await db.query('DELETE FROM Employee WHERE Employee_ID = ?', [id]);
     res.json({ message: 'Employee deleted successfully', Employee_ID: id });
   } catch (err) {
     next(err);

@@ -21,11 +21,20 @@ import { EmployeesPage } from './pages/EmployeesPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { MyBookingsPage } from './pages/MyBookingsPage';
+import { GuestDashboardPage } from './pages/GuestDashboardPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { token, loading } = useAuth();
   if (loading) return null;
-  if (!token) return <Navigate to="/register" replace />;
+  if (!token) return <Navigate to="/guest-login" replace />;
+  return <>{children}</>;
+};
+
+const StaffDashboardGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  if (user?.role === 'Guest') {
+    return <Navigate to="/guest-dashboard" replace />;
+  }
   return <>{children}</>;
 };
 
@@ -45,9 +54,10 @@ export const App: React.FC = () => {
             <Route path="hotels" element={<HotelsPage />} />
             <Route path="rooms" element={<RoomsPage />} />
             <Route path="my-bookings" element={<MyBookingsPage />} />
+            <Route path="guest-dashboard" element={<ProtectedRoute><GuestDashboardPage /></ProtectedRoute>} />
 
             {/* Protected Management & Admin Operations */}
-            <Route path="dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="dashboard" element={<ProtectedRoute><StaffDashboardGuard><DashboardPage /></StaffDashboardGuard></ProtectedRoute>} />
             <Route path="guests" element={<ProtectedRoute><GuestsPage /></ProtectedRoute>} />
             <Route path="guests/profile/:id" element={<ProtectedRoute><GuestProfilePage /></ProtectedRoute>} />
             <Route path="reservations" element={<ProtectedRoute><ReservationsPage /></ProtectedRoute>} />

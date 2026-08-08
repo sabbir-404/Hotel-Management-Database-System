@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../services/api';
 import { Employee, Hotel } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -19,8 +20,9 @@ export const EmployeesPage: React.FC = () => {
     Last_Name: '',
     Phone_Number: '',
     Email: '',
+    Password: '',
     Address: '',
-    Nationality: 'American',
+    Nationality: 'Bangladeshi',
     Hotel_ID: 1,
     Designation: 'Receptionist',
     Salary: 45000.00,
@@ -58,8 +60,9 @@ export const EmployeesPage: React.FC = () => {
       Last_Name: '',
       Phone_Number: '',
       Email: '',
+      Password: '',
       Address: '',
-      Nationality: 'American',
+      Nationality: 'Bangladeshi',
       Hotel_ID: hotels[0]?.Hotel_ID || 1,
       Designation: 'Receptionist',
       Salary: 45000.00,
@@ -74,10 +77,11 @@ export const EmployeesPage: React.FC = () => {
     setFormData({
       First_Name: emp.First_Name,
       Last_Name: emp.Last_Name,
-      Phone_Number: emp.Phone_Number,
+      Phone_Number: emp.Phone_Number || '',
       Email: emp.Email || '',
+      Password: '',
       Address: emp.Address || '',
-      Nationality: emp.Nationality || '',
+      Nationality: emp.Nationality || 'Bangladeshi',
       Hotel_ID: emp.Hotel_ID,
       Designation: emp.Designation,
       Salary: Number(emp.Salary),
@@ -142,7 +146,7 @@ export const EmployeesPage: React.FC = () => {
             Employee & Personnel Directory
           </h1>
           <p className="text-xs text-acc-500 font-mono">
-            Relational MySQL Tables: <code>Person</code> ⟷ <code>Employee</code>
+            Relational MySQL Table: <code>Employee</code>
           </p>
         </div>
 
@@ -181,7 +185,7 @@ export const EmployeesPage: React.FC = () => {
                 <th className="p-3 font-semibold">Full Name</th>
                 <th className="p-3 font-semibold">Designation</th>
                 <th className="p-3 font-semibold">Hotel Assignment</th>
-                <th className="p-3 font-semibold">Salary</th>
+                <th className="p-3 font-semibold">Salary (BDT ৳)</th>
                 <th className="p-3 font-semibold">Joining Date</th>
                 <th className="p-3 font-semibold">Status</th>
                 {canEdit && <th className="p-3 font-semibold text-right">Actions</th>}
@@ -206,9 +210,9 @@ export const EmployeesPage: React.FC = () => {
                     <td className="p-3 font-sans font-medium text-acc-900 dark:text-acc-200">{e.Designation}</td>
                     <td className="p-3">{e.Hotel_Name}</td>
                     <td className="p-3 font-bold text-acc-950 dark:text-acc-50">
-                      ${Number(e.Salary).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      BDT ৳{Number(e.Salary).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="p-3">{new Date(e.Joining_Date).toLocaleDateString()}</td>
+                    <td className="p-3">{new Date(e.Joining_Date || '').toLocaleDateString()}</td>
                     <td className="p-3">
                       <span className={`badge-pill border ${getStatusBadge(e.Employment_Status)}`}>
                         {e.Employment_Status}
@@ -245,66 +249,80 @@ export const EmployeesPage: React.FC = () => {
       </div>
 
       {/* Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-acc-900 border border-acc-200 dark:border-acc-700 rounded-lg max-w-md w-full p-6 shadow-xl space-y-4">
+      {modalOpen && createPortal(
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-acc-900 border border-acc-200 dark:border-acc-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-bold text-acc-950 dark:text-acc-50 border-b border-acc-100 dark:border-acc-800 pb-2">
               {editingEmployee ? `Edit Employee Record (#EMP-${editingEmployee.Employee_ID})` : 'Add New Staff Member'}
             </h3>
 
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium mb-1">First Name *</label>
+                  <label className="block font-medium mb-1">First Name *</label>
                   <input
                     type="text"
                     required
                     value={formData.First_Name}
                     onChange={(e) => setFormData({ ...formData, First_Name: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs"
+                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1">Last Name *</label>
+                  <label className="block font-medium mb-1">Last Name *</label>
                   <input
                     type="text"
                     required
                     value={formData.Last_Name}
                     onChange={(e) => setFormData({ ...formData, Last_Name: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs"
+                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium mb-1">Phone Number *</label>
+                  <label className="block font-medium mb-1">Phone Number *</label>
                   <input
                     type="text"
                     required
                     value={formData.Phone_Number}
                     onChange={(e) => setFormData({ ...formData, Phone_Number: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
+                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1">Email</label>
+                  <label className="block font-medium mb-1">Email</label>
                   <input
                     type="email"
                     value={formData.Email}
                     onChange={(e) => setFormData({ ...formData, Email: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
+                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono"
                   />
                 </div>
               </div>
 
+              <div>
+                <label className="block font-medium mb-1">
+                  Account Password {editingEmployee ? '(Leave blank to keep unchanged)' : '*'}
+                </label>
+                <input
+                  type="password"
+                  required={!editingEmployee}
+                  value={formData.Password}
+                  onChange={(e) => setFormData({ ...formData, Password: e.target.value })}
+                  placeholder={editingEmployee ? '••••••••' : 'Set Account Password'}
+                  className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium mb-1">Hotel Assignment *</label>
+                  <label className="block font-medium mb-1">Hotel Assignment *</label>
                   <select
                     value={formData.Hotel_ID}
                     onChange={(e) => setFormData({ ...formData, Hotel_ID: parseInt(e.target.value) })}
-                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
+                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono"
                   >
                     {hotels.map(h => (
                       <option key={h.Hotel_ID} value={h.Hotel_ID}>{h.Hotel_Name}</option>
@@ -312,13 +330,13 @@ export const EmployeesPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1">Designation *</label>
+                  <label className="block font-medium mb-1">Designation *</label>
                   <input
                     type="text"
                     required
                     value={formData.Designation}
                     onChange={(e) => setFormData({ ...formData, Designation: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs"
+                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl"
                     placeholder="e.g. Receptionist, Manager"
                   />
                 </div>
@@ -326,22 +344,22 @@ export const EmployeesPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium mb-1">Salary ($) *</label>
+                  <label className="block font-medium mb-1">Salary (BDT ৳) *</label>
                   <input
                     type="number"
                     step="0.01"
                     required
                     value={formData.Salary}
                     onChange={(e) => setFormData({ ...formData, Salary: parseFloat(e.target.value) })}
-                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
+                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1">Employment Status</label>
+                  <label className="block font-medium mb-1">Employment Status</label>
                   <select
                     value={formData.Employment_Status}
                     onChange={(e) => setFormData({ ...formData, Employment_Status: e.target.value as any })}
-                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
+                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono"
                   >
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
@@ -351,12 +369,12 @@ export const EmployeesPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Joining Date</label>
+                <label className="block font-medium mb-1">Joining Date</label>
                 <input
                   type="date"
                   value={formData.Joining_Date}
                   onChange={(e) => setFormData({ ...formData, Joining_Date: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
+                  className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono"
                 />
               </div>
 
@@ -364,20 +382,21 @@ export const EmployeesPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-3 py-1.5 border border-acc-300 dark:border-acc-700 text-xs rounded hover:bg-acc-100"
+                  className="px-3.5 py-2 border border-acc-300 dark:border-acc-700 text-xs rounded-xl hover:bg-acc-100"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-acc-950 text-white dark:bg-brand-500 dark:text-acc-950 font-semibold text-xs rounded"
+                  className="px-4 py-2 bg-brand-500 text-acc-950 font-bold text-xs rounded-xl"
                 >
                   Save Employee
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

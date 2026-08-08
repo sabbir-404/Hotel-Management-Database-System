@@ -57,16 +57,6 @@ export const SettingsPage: React.FC = () => {
           </select>
         </div>
 
-        <div>
-          <label className="block text-xs font-medium mb-1">Standard Government VAT / Tax Rate (%)</label>
-          <input
-            type="number"
-            value={taxRate}
-            onChange={(e) => setTaxRate(e.target.value)}
-            className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
-          />
-        </div>
-
         <h3 className="font-bold text-sm text-acc-950 dark:text-acc-50 border-b border-acc-100 dark:border-acc-800 pb-2 pt-2">
           Database Connection Information
         </h3>

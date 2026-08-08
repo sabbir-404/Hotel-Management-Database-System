@@ -55,13 +55,15 @@ exports.guestLogin = async (req, res, next) => {
       return res.status(400).json({ error: 'Email ID / Username and Password are required' });
     }
 
+    const inputUser = emailOrUsername.trim();
+    const inputPass = password.trim();
+
     const [guests] = await db.query(`
-      SELECT g.Guest_ID, p.First_Name, p.Last_Name, p.Phone_Number, p.Email, g.Identification_Number
-      FROM Guest g
-      JOIN Person p ON g.Guest_ID = p.Person_ID
-      WHERE (p.Email = ? OR p.Phone_Number = ? OR p.First_Name = ?) 
-        AND (g.Identification_Number = ? OR ? = 'password' OR ? = '123456')
-    `, [emailOrUsername, emailOrUsername, emailOrUsername, password, password, password]);
+      SELECT Guest_ID, Full_Name, Phone_Number, Email, Username, Identification_Number, Password
+      FROM Guest
+      WHERE (LOWER(Email) = LOWER(?) OR LOWER(Phone_Number) = LOWER(?) OR LOWER(Username) = LOWER(?)) 
+        AND (Password = ? OR Identification_Number = ? OR ? = 'password' OR ? = '123456')
+    `, [inputUser, inputUser, inputUser, inputPass, inputPass, inputPass, inputPass]);
 
     if (guests.length === 0) {
       return res.status(401).json({ 
@@ -70,7 +72,7 @@ exports.guestLogin = async (req, res, next) => {
     }
 
     const guest = guests[0];
-    const guestName = `${guest.First_Name} ${guest.Last_Name}`;
+    const guestName = guest.Full_Name;
 
     const token = jwt.sign(
       { id: guest.Guest_ID, username: guest.Email || guest.Phone_Number, role: 'Guest', name: guestName },

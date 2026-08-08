@@ -1,4 +1,4 @@
-export type UserRole = 'Admin' | 'Receptionist' | 'Manager';
+export type UserRole = 'Admin' | 'Receptionist' | 'Manager' | 'Guest';
 
 export interface User {
   id: number;
@@ -35,14 +35,17 @@ export interface Room {
 
 export interface Guest {
   Guest_ID: number;
+  Full_Name?: string;
   First_Name: string;
   Last_Name: string;
   Phone_Number: string;
   Email?: string;
   Address?: string;
   Nationality?: string;
-  Registration_Date: string;
+  Registration_Date?: string;
   Identification_Number: string;
+  Username?: string;
+  Password?: string;
   Total_Reservations?: number;
 }
 
@@ -50,22 +53,25 @@ export interface Employee {
   Employee_ID: number;
   Hotel_ID: number;
   Hotel_Name?: string;
+  Full_Name?: string;
   First_Name: string;
   Last_Name: string;
-  Phone_Number: string;
+  Phone_Number?: string;
   Email?: string;
   Address?: string;
   Nationality?: string;
   Designation: string;
   Salary: number | string;
-  Joining_Date: string;
+  Joining_Date?: string;
   Employment_Status: 'Active' | 'Inactive' | 'On Leave';
+  Password?: string;
 }
 
 export interface Reservation {
   Reservation_ID: number;
   Guest_ID: number;
   Room_ID: number;
+  Full_Name?: string;
   First_Name?: string;
   Last_Name?: string;
   Phone_Number?: string;
@@ -88,8 +94,9 @@ export interface Reservation {
 
 export interface Service {
   Service_ID: number;
+  Service_Type?: string;
   Service_Name: string;
-  Service_Charge: number | string;
+  Service_Charge?: number | string;
   Service_Description?: string;
 }
 
@@ -97,7 +104,10 @@ export interface ServiceRecord {
   Service_Record_ID: number;
   Guest_ID: number;
   Service_ID: number;
+  Bill_ID?: number;
+  Service_Type?: string;
   Service_Name?: string;
+  Full_Name?: string;
   First_Name?: string;
   Last_Name?: string;
   Service_Date: string;
@@ -107,8 +117,9 @@ export interface ServiceRecord {
 
 export interface BillItem {
   Bill_ID: number;
-  Bill_Item_No: number;
+  Bill_Item_No?: number;
   Service_Record_ID?: number;
+  Service_Type?: string;
   Service_Name?: string;
   Service_Date?: string;
   Quantity: number;
@@ -118,13 +129,14 @@ export interface BillItem {
 export interface Bill {
   Bill_ID: number;
   Reservation_ID: number;
-  Billing_Date: string;
+  Billing_Date?: string;
   Total_Amount: number | string;
   Taxes: number | string;
   Discounts: number | string;
   Final_Amount: number | string;
-  Payment_Method: 'Cash' | 'Card' | 'Mobile Banking' | 'Bank Transfer';
+  Payment_Method?: 'Cash' | 'Card' | 'Mobile Banking' | 'Bank Transfer';
   Payment_Status: 'Pending' | 'Paid' | 'Cancelled';
+  Full_Name?: string;
   First_Name?: string;
   Last_Name?: string;
   Email?: string;
@@ -138,7 +150,7 @@ export interface Bill {
   Nightly_Rate?: number | string;
   Check_In_Date?: string;
   Check_Out_Date?: string;
-  items?: BillItem[];
+  items?: ServiceRecord[] | BillItem[];
 }
 
 export interface DashboardSummary {

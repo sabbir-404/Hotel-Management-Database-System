@@ -177,7 +177,7 @@ export const ReportsPage: React.FC = () => {
                   <tr key={idx} className="hover:bg-acc-50 dark:hover:bg-acc-850/50">
                     {Object.values(row).map((val: any, valIdx) => (
                       <td key={valIdx} className="p-3">
-                        {typeof val === 'number' && valIdx > 2 ? `$${val.toLocaleString()}` : String(val ?? 'N/A')}
+                        {typeof val === 'number' && valIdx > 2 ? `BDT ৳${val.toLocaleString()}` : String(val ?? 'N/A')}
                       </td>
                     ))}
                   </tr>

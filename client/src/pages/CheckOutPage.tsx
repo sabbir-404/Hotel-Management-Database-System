@@ -60,7 +60,7 @@ export const CheckOutPage: React.FC = () => {
           <span>Express Guest Check-Out & Billing Settlement</span>
         </h1>
         <p className="text-xs text-acc-500 font-mono">
-          Menu: Reservation ➔ Check-Out | Calculates Room Charge + Services + Taxes ➔ Final Bill ➔ Room Available
+          Menu: Reservation ➔ Check-Out | Calculates Room Charge + Services ➔ Final Bill ➔ Room Available
         </p>
       </div>
 
@@ -149,7 +149,7 @@ export const CheckOutPage: React.FC = () => {
                   <span>৳{Number(selectedRes.Room_Charge || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-acc-500">
-                  <span>Services + Taxes (10%):</span>
+                  <span>Ordered Services:</span>
                   <span>Auto calculated</span>
                 </div>
               </div>

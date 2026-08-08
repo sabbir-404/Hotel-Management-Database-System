@@ -9,8 +9,8 @@ exports.getDashboardStats = async (req, res, next) => {
     const [activeRes] = await db.query("SELECT COUNT(*) as count FROM Reservation WHERE Reservation_Status IN ('Confirmed', 'Checked In')");
     const [guestsToday] = await db.query("SELECT COUNT(DISTINCT Guest_ID) as count FROM Reservation WHERE CURRENT_DATE BETWEEN Check_In_Date AND Check_Out_Date");
 
-    const [todayRevenue] = await db.query("SELECT COALESCE(SUM(Final_Amount), 0) as total FROM Bill WHERE Billing_Date = CURRENT_DATE");
-    const [monthlyRevenue] = await db.query("SELECT COALESCE(SUM(Final_Amount), 0) as total FROM Bill WHERE MONTH(Billing_Date) = MONTH(CURRENT_DATE) AND YEAR(Billing_Date) = YEAR(CURRENT_DATE)");
+    const [todayRevenue] = await db.query("SELECT COALESCE(SUM(Total_Amount + Taxes - Discounts), 0) as total FROM Bill WHERE Payment_Status = 'Paid'");
+    const [monthlyRevenue] = await db.query("SELECT COALESCE(SUM(Total_Amount + Taxes - Discounts), 0) as total FROM Bill WHERE Payment_Status = 'Paid'");
 
     // Occupancy Rate
     const totalR = roomsCount[0].count || 1;
@@ -19,10 +19,12 @@ exports.getDashboardStats = async (req, res, next) => {
 
     // Chart Data - Revenue per month
     const [revenueByMonth] = await db.query(`
-      SELECT DATE_FORMAT(Billing_Date, '%Y-%m') as Month,
-             SUM(Final_Amount) as Revenue
-      FROM Bill
-      GROUP BY DATE_FORMAT(Billing_Date, '%Y-%m')
+      SELECT DATE_FORMAT(r.Check_Out_Date, '%Y-%m') as Month,
+             SUM(b.Total_Amount + b.Taxes - b.Discounts) as Revenue
+      FROM Bill b
+      JOIN Reservation r ON b.Reservation_ID = r.Reservation_ID
+      WHERE b.Payment_Status = 'Paid'
+      GROUP BY DATE_FORMAT(r.Check_Out_Date, '%Y-%m')
       ORDER BY Month ASC
       LIMIT 12
     `);
@@ -59,18 +61,27 @@ exports.getDashboardStats = async (req, res, next) => {
 exports.getHighestSpendingGuests = async (req, res, next) => {
   try {
     const [rows] = await db.query(`
-      SELECT g.Guest_ID, p.First_Name, p.Last_Name, p.Email, p.Phone_Number, p.Nationality,
+      SELECT g.Guest_ID, g.Full_Name, g.Email, g.Phone_Number, g.Nationality,
              COUNT(DISTINCT r.Reservation_ID) as Total_Bookings,
-             COALESCE(SUM(b.Final_Amount), 0) as Total_Spent
+             COALESCE(SUM(b.Total_Amount + b.Taxes - b.Discounts), 0) as Total_Spent
       FROM Guest g
-      JOIN Person p ON g.Guest_ID = p.Person_ID
       LEFT JOIN Reservation r ON g.Guest_ID = r.Guest_ID
-      LEFT JOIN Bill b ON r.Reservation_ID = b.Reservation_ID
+      LEFT JOIN Bill b ON r.Reservation_ID = b.Reservation_ID AND b.Payment_Status = 'Paid'
       GROUP BY g.Guest_ID
       ORDER BY Total_Spent DESC
       LIMIT 10
     `);
-    res.json(rows);
+
+    const formatted = rows.map(r => {
+      const parts = (r.Full_Name || '').split(' ');
+      return {
+        ...r,
+        First_Name: parts[0] || '',
+        Last_Name: parts.slice(1).join(' ') || ''
+      };
+    });
+
+    res.json(formatted);
   } catch (err) {
     next(err);
   }
@@ -79,17 +90,26 @@ exports.getHighestSpendingGuests = async (req, res, next) => {
 exports.getUpcomingCheckins = async (req, res, next) => {
   try {
     const [rows] = await db.query(`
-      SELECT r.*, p.First_Name, p.Last_Name, p.Phone_Number, rm.Room_Number, rm.Room_Type, h.Hotel_Name
+      SELECT r.*, g.Full_Name, g.Phone_Number, rm.Room_Number, rm.Room_Type, h.Hotel_Name
       FROM Reservation r
       JOIN Guest g ON r.Guest_ID = g.Guest_ID
-      JOIN Person p ON g.Guest_ID = p.Person_ID
       JOIN Room rm ON r.Room_ID = rm.Room_ID
       JOIN Hotel h ON rm.Hotel_ID = h.Hotel_ID
       WHERE r.Reservation_Status = 'Confirmed'
         AND r.Check_In_Date >= CURRENT_DATE
       ORDER BY r.Check_In_Date ASC
     `);
-    res.json(rows);
+
+    const formatted = rows.map(r => {
+      const parts = (r.Full_Name || '').split(' ');
+      return {
+        ...r,
+        First_Name: parts[0] || '',
+        Last_Name: parts.slice(1).join(' ') || ''
+      };
+    });
+
+    res.json(formatted);
   } catch (err) {
     next(err);
   }

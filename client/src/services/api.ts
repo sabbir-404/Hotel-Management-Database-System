@@ -23,14 +23,22 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('hms_token');
-      localStorage.removeItem('hms_user');
+      const isAuthEndpoint = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/guest-login');
       
-      const currentPath = window.location.pathname;
-      const isPublicPage = currentPath === '/' || currentPath === '/hotels' || currentPath === '/rooms' || currentPath === '/login';
+      if (!isAuthEndpoint) {
+        localStorage.removeItem('hms_token');
+        localStorage.removeItem('hms_user');
+        
+        const currentPath = window.location.pathname;
+        const isPublicPage = currentPath === '/' || currentPath === '/hotels' || currentPath === '/rooms' || currentPath === '/login' || currentPath === '/guest-login' || currentPath === '/register';
 
-      if (!isPublicPage) {
-        window.location.href = '/login';
+        if (!isPublicPage) {
+          if (currentPath === '/guest-dashboard' || currentPath === '/my-bookings') {
+            window.location.href = '/guest-login';
+          } else {
+            window.location.href = '/login';
+          }
+        }
       }
     }
     return Promise.reject(error);

@@ -1,19 +1,30 @@
 const db = require('../config/db');
 
+const mapResFields = (r) => {
+  if (!r) return r;
+  const parts = (r.Full_Name || '').split(' ');
+  const firstName = parts[0] || '';
+  const lastName = parts.slice(1).join(' ') || '';
+  return {
+    ...r,
+    First_Name: r.First_Name || firstName,
+    Last_Name: r.Last_Name || lastName
+  };
+};
+
 exports.getAllReservations = async (req, res, next) => {
   try {
     const { status, guestId, hotelId } = req.query;
     let query = `
       SELECT r.*, 
-             p.First_Name, p.Last_Name, p.Phone_Number, p.Email,
+             g.Full_Name, g.Phone_Number, g.Email,
              rm.Room_Number, rm.Room_Type, rm.Nightly_Rate,
              h.Hotel_Name, h.Hotel_ID,
              DATEDIFF(r.Check_Out_Date, r.Check_In_Date) as Total_Nights,
              (DATEDIFF(r.Check_Out_Date, r.Check_In_Date) * rm.Nightly_Rate) as Room_Charge,
-             b.Bill_ID, b.Payment_Status, b.Final_Amount
+             b.Bill_ID, b.Payment_Status, (b.Total_Amount + b.Taxes - b.Discounts) as Final_Amount
       FROM Reservation r
       JOIN Guest g ON r.Guest_ID = g.Guest_ID
-      JOIN Person p ON g.Guest_ID = p.Person_ID
       JOIN Room rm ON r.Room_ID = rm.Room_ID
       JOIN Hotel h ON rm.Hotel_ID = h.Hotel_ID
       LEFT JOIN Bill b ON r.Reservation_ID = b.Reservation_ID
@@ -37,7 +48,7 @@ exports.getAllReservations = async (req, res, next) => {
     query += ' ORDER BY r.Reservation_ID DESC';
 
     const [reservations] = await db.query(query, params);
-    res.json(reservations);
+    res.json(reservations.map(mapResFields));
   } catch (err) {
     next(err);
   }
@@ -48,15 +59,14 @@ exports.getReservationById = async (req, res, next) => {
     const { id } = req.params;
     const [reservations] = await db.query(`
       SELECT r.*, 
-             p.First_Name, p.Last_Name, p.Phone_Number, p.Email, p.Identification_Number,
+             g.Full_Name, g.Phone_Number, g.Email, g.Identification_Number,
              rm.Room_Number, rm.Room_Type, rm.Nightly_Rate,
              h.Hotel_Name, h.City,
              DATEDIFF(r.Check_Out_Date, r.Check_In_Date) as Total_Nights,
              (DATEDIFF(r.Check_Out_Date, r.Check_In_Date) * rm.Nightly_Rate) as Room_Charge,
-             b.Bill_ID, b.Payment_Status, b.Final_Amount
+             b.Bill_ID, b.Payment_Status, (b.Total_Amount + b.Taxes - b.Discounts) as Final_Amount
       FROM Reservation r
       JOIN Guest g ON r.Guest_ID = g.Guest_ID
-      JOIN Person p ON g.Guest_ID = p.Person_ID
       JOIN Room rm ON r.Room_ID = rm.Room_ID
       JOIN Hotel h ON rm.Hotel_ID = h.Hotel_ID
       LEFT JOIN Bill b ON r.Reservation_ID = b.Reservation_ID
@@ -66,7 +76,7 @@ exports.getReservationById = async (req, res, next) => {
     if (reservations.length === 0) {
       return res.status(404).json({ error: 'Reservation not found' });
     }
-    res.json(reservations[0]);
+    res.json(mapResFields(reservations[0]));
   } catch (err) {
     next(err);
   }
@@ -84,6 +94,14 @@ exports.createReservation = async (req, res, next) => {
     const checkOut = new Date(Check_Out_Date);
     if (checkOut <= checkIn) {
       return res.status(400).json({ error: 'Check Out date must be after Check In date' });
+    }
+
+    // Check Guest Existence in Guest table
+    const [guestCheck] = await db.query('SELECT Guest_ID FROM Guest WHERE Guest_ID = ?', [Guest_ID]);
+    if (guestCheck.length === 0) {
+      return res.status(400).json({ 
+        error: `Invalid Guest ID (${Guest_ID}). The guest account was not found in the database. Please log out and sign in again or select a valid guest.` 
+      });
     }
 
     // Check Room Availability
@@ -107,16 +125,15 @@ exports.createReservation = async (req, res, next) => {
     await db.query(`UPDATE Room SET Availability_Status = 'Reserved' WHERE Room_ID = ?`, [Room_ID]);
 
     const [newRes] = await db.query(`
-      SELECT r.*, p.First_Name, p.Last_Name, rm.Room_Number, h.Hotel_Name
+      SELECT r.*, g.Full_Name, rm.Room_Number, h.Hotel_Name
       FROM Reservation r
       JOIN Guest g ON r.Guest_ID = g.Guest_ID
-      JOIN Person p ON g.Guest_ID = p.Person_ID
       JOIN Room rm ON r.Room_ID = rm.Room_ID
       JOIN Hotel h ON rm.Hotel_ID = h.Hotel_ID
       WHERE r.Reservation_ID = ?
     `, [result.insertId]);
 
-    res.status(201).json(newRes[0]);
+    res.status(201).json(mapResFields(newRes[0]));
   } catch (err) {
     next(err);
   }
@@ -154,16 +171,15 @@ exports.updateReservation = async (req, res, next) => {
     }
 
     const [updated] = await db.query(`
-      SELECT r.*, p.First_Name, p.Last_Name, rm.Room_Number, h.Hotel_Name
+      SELECT r.*, g.Full_Name, rm.Room_Number, h.Hotel_Name
       FROM Reservation r
       JOIN Guest g ON r.Guest_ID = g.Guest_ID
-      JOIN Person p ON g.Guest_ID = p.Person_ID
       JOIN Room rm ON r.Room_ID = rm.Room_ID
       JOIN Hotel h ON rm.Hotel_ID = h.Hotel_ID
       WHERE r.Reservation_ID = ?
     `, [id]);
 
-    res.json(updated[0]);
+    res.json(mapResFields(updated[0]));
   } catch (err) {
     next(err);
   }
@@ -179,13 +195,10 @@ exports.deleteReservation = async (req, res, next) => {
 
     const roomId = existing[0].Room_ID;
 
-    // Delete reservation (triggers MySQL trg_reservation_backup automatically)
     await db.query('DELETE FROM Reservation WHERE Reservation_ID = ?', [id]);
-
-    // Free up room if it was reserved or occupied
     await db.query(`UPDATE Room SET Availability_Status = 'Available' WHERE Room_ID = ?`, [roomId]);
 
-    res.json({ message: 'Reservation deleted and backed up to Reservation_Log', Reservation_ID: id });
+    res.json({ message: 'Reservation deleted successfully', Reservation_ID: id });
   } catch (err) {
     next(err);
   }

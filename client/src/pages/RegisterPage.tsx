@@ -8,17 +8,20 @@ import {
   CheckCircle, 
   CircleNotch,
   User,
-  XCircle
+  XCircle,
+  LockKey
 } from '@phosphor-icons/react';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { guestLogin } = useAuth();
 
   const [form, setForm] = useState({
     First_Name: '',
     Last_Name: '',
     Username: '',
+    Password: '',
+    Confirm_Password: '',
     Phone_Number: '',
     Email: '',
     Address: '',
@@ -82,26 +85,53 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
+    if (!form.Password || form.Password.length < 4) {
+      setErrorMsg('Password must be at least 4 characters long.');
+      return;
+    }
+
+    if (form.Password !== form.Confirm_Password) {
+      setErrorMsg('Passwords do not match. Please re-enter your password.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // 1. Create Guest & Person in DB
-      const res = await api.post('/guests', form);
+      // 1. Create Guest & Person in DB with Password
+      const payload = {
+        First_Name: form.First_Name,
+        Last_Name: form.Last_Name,
+        Username: form.Username,
+        Password: form.Password,
+        Phone_Number: form.Phone_Number,
+        Email: form.Email,
+        Address: form.Address,
+        Nationality: form.Nationality,
+        Identification_Number: form.Identification_Number
+      };
+
+      const res = await api.post('/guests', payload);
       const newGuest = res.data;
 
-      setSuccessMsg(`Registration successful! Profile #GST-${newGuest.Guest_ID} created. Logging you in...`);
+      setSuccessMsg(`Registration successful! Guest Profile #${newGuest.Guest_ID} created. Logging you in...`);
 
-      // 2. Automatically log in
+      // 2. Automatically log in as Guest using guest login API
       try {
-        await login('receptionist', 'Receptionist');
+        await guestLogin(form.Username || form.Email || form.Phone_Number, form.Password);
       } catch (loginErr) {
-        console.warn('Auto-login fallback:', loginErr);
+        console.warn('Auto guest-login fallback:', loginErr);
       }
 
-      // 3. Soft delay and redirect to booking wizard
+      // 3. Soft delay and redirect to Guest Dashboard
       setTimeout(() => {
-        navigate(`/reservations/new?guestId=${newGuest.Guest_ID}`);
-      }, 1200);
+        const bookHotelId = new URLSearchParams(window.location.search).get('hotelId');
+        if (bookHotelId) {
+          navigate(`/guest-dashboard?bookHotelId=${bookHotelId}`);
+        } else {
+          navigate('/guest-dashboard');
+        }
+      }, 1000);
 
     } catch (err: any) {
       setErrorMsg(err.response?.data?.error || 'Registration failed. Please check inputs.');
@@ -210,6 +240,38 @@ export const RegisterPage: React.FC = () => {
                 {usernameMsg}
               </p>
             )}
+          </div>
+
+          {/* Password & Confirm Password Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block font-medium mb-1 flex items-center gap-1">
+                <LockKey size={14} className="text-brand-500" />
+                <span>Password *</span>
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={form.Password}
+                onChange={(e) => setForm({ ...form, Password: e.target.value })}
+                className="w-full px-3 py-2 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1 flex items-center gap-1">
+                <LockKey size={14} className="text-brand-500" />
+                <span>Confirm Password *</span>
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={form.Confirm_Password}
+                onChange={(e) => setForm({ ...form, Confirm_Password: e.target.value })}
+                className="w-full px-3 py-2 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded text-xs font-mono"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

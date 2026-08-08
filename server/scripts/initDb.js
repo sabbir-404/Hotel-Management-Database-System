@@ -71,11 +71,16 @@ async function initDb() {
       console.warn(`Note during SQL schema import:`, err.message);
     }
 
-    // Ensure columns exist
+    // Ensure UI enhancement columns exist
     try { await connection.query(`ALTER TABLE Hotel ADD COLUMN Image_Url VARCHAR(500);`); } catch (e) {}
     try { await connection.query(`ALTER TABLE Room ADD COLUMN Sale_Rate DECIMAL(10,2);`); } catch (e) {}
     try { await connection.query(`ALTER TABLE Room ADD COLUMN Room_Description TEXT;`); } catch (e) {}
-    try { await connection.query(`ALTER TABLE Person ADD COLUMN Username VARCHAR(100) UNIQUE;`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE Guest ADD COLUMN Username VARCHAR(100) UNIQUE;`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE Guest ADD COLUMN Password VARCHAR(255);`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE Employee ADD COLUMN Password VARCHAR(255);`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE Service ADD COLUMN Service_Name VARCHAR(100);`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE Service ADD COLUMN Service_Charge DECIMAL(10,2) DEFAULT 0;`); } catch (e) {}
+    try { await connection.query(`ALTER TABLE Service ADD COLUMN Service_Description TEXT;`); } catch (e) {}
 
     // Seed 6 Hotels in Bangladesh
     console.log('Seeding 6 Bangladesh Hotels (Dhaka, Cox\'s Bazar, Sylhet, Chittagong, Rangamati, Sreemangal)...');
@@ -89,30 +94,21 @@ async function initDb() {
       (6, 'Hotel.com Heritage Eco Lodge', 'Grand Trunk Road', 'Sreemangal', '+880-1511-223344', 4, 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80');
     `);
 
-    // Seed Persons (Bangladeshi Guests and Staff) with Usernames
-    console.log('Seeding Persons, Guests, and Employees...');
+    // Seed Guests directly into Guest table (no Person table)
+    console.log('Seeding Guests and Employees directly into entity tables...');
     await connection.query(`
-      INSERT INTO Person (Person_ID, First_Name, Last_Name, Username, Phone_Number, Email, Address, Nationality) VALUES
-      (1, 'Tanvir', 'Rahman', 'tanvir', '+8801700112233', 'tanvir.rahman@example.com', 'House 42, Road 11, Banani, Dhaka', 'Bangladeshi'),
-      (2, 'Nusrat', 'Jahan', 'nusrat', '+8801811223344', 'nusrat.jahan@example.com', '78 Agrabad C/A, Chittagong', 'Bangladeshi'),
-      (3, 'Arif', 'Hossain', 'arif', '+8801922334455', 'arif.hossain@example.com', 'Dolphin Circle, Cox''s Bazar', 'Bangladeshi'),
-      (4, 'Shakib', 'Ahmed', 'shakib', '+8801533445566', 'shakib.ahmed@example.com', 'Gulshan 2, Dhaka', 'Bangladeshi'),
-      (5, 'Mahmud', 'Hasan', 'mahmud', '+8801644556677', 'mahmud.hasan@example.com', 'Mirpur 10, Dhaka', 'Bangladeshi');
+      INSERT INTO Guest (Guest_ID, Full_Name, Phone_Number, Email, Address, Nationality, Identification_Number, Username, Password) VALUES
+      (1, 'Tanvir Rahman', '+8801700112233', 'tanvir.rahman@example.com', 'House 42, Road 11, Banani, Dhaka', 'Bangladeshi', 'NID-1994829102938', 'tanvir', 'password'),
+      (2, 'Nusrat Jahan', '+8801811223344', 'nusrat.jahan@example.com', '78 Agrabad C/A, Chittagong', 'Bangladeshi', 'NID-1988471928374', 'nusrat', 'password'),
+      (3, 'Arif Hossain', '+8801922334455', 'arif.hossain@example.com', 'Dolphin Circle, Cox''s Bazar', 'Bangladeshi', 'PASSPORT-A09823411', 'arif', 'password'),
+      (4, 'Sabbir Hossain', '+8801799887766', 'sabbir@example.com', 'Dhaka', 'Bangladeshi', 'NID-9988776655', 'sabbir', '1234');
     `);
 
-    // Insert Guests (Person IDs 1, 2, 3)
+    // Seed Employees directly into Employee table (no Person table)
     await connection.query(`
-      INSERT INTO Guest (Guest_ID, Registration_Date, Identification_Number) VALUES
-      (1, '2026-01-15', 'NID-1994829102938'),
-      (2, '2026-02-01', 'NID-1988471928374'),
-      (3, '2026-02-10', 'PASSPORT-A09823411');
-    `);
-
-    // Insert Employees (Person IDs 4, 5)
-    await connection.query(`
-      INSERT INTO Employee (Employee_ID, Hotel_ID, Designation, Salary, Joining_Date, Employment_Status) VALUES
-      (4, 1, 'General Manager', 120000.00, '2024-03-01', 'Active'),
-      (5, 1, 'Front Desk Executive', 45000.00, '2024-06-15', 'Active');
+      INSERT INTO Employee (Employee_ID, Hotel_ID, Full_Name, Designation, Salary, Joining_Date, Employment_Status, Password) VALUES
+      (1, 1, 'Shakib Ahmed', 'General Manager', 120000.00, '2024-03-01', 'Active', 'password'),
+      (2, 1, 'Mahmud Hasan', 'Front Desk Executive', 45000.00, '2024-06-15', 'Active', 'password');
     `);
 
     // Seed Rooms across all 6 hotels
@@ -134,15 +130,15 @@ async function initDb() {
     // Seed Services
     console.log('Seeding Services...');
     await connection.query(`
-      INSERT INTO Service (Service_ID, Service_Name, Service_Charge, Service_Description) VALUES
-      (1, 'Express Laundry & Pressing', 500.00, 'Full laundry wash, iron, and same-day room delivery'),
-      (2, 'Luxury Spa & Herbal Therapy', 3500.00, '90-minute aromatherapy and traditional thermal relaxation'),
-      (3, 'Airport Chauffeur Transfer', 2500.00, 'Private sedan transport to/from Hazrat Shahjalal Airport'),
-      (4, 'Gourmet Room Service Dining', 1200.00, '24/7 in-room dining tray service with local & continental dishes');
+      INSERT INTO Service (Service_ID, Service_Type, Service_Name, Service_Charge, Service_Description) VALUES
+      (1, 'Laundry', 'Express Laundry & Pressing', 500.00, 'Full laundry wash, iron, and same-day room delivery'),
+      (2, 'Spa', 'Luxury Spa & Herbal Therapy', 3500.00, '90-minute aromatherapy and traditional thermal relaxation'),
+      (3, 'Transportation', 'Airport Chauffeur Transfer', 2500.00, 'Private sedan transport to/from Hazrat Shahjalal Airport'),
+      (4, 'Room Service', 'Gourmet Room Service Dining', 1200.00, '24/7 in-room dining tray service with local & continental dishes');
     `);
 
-    // Seed Reservations & Bills
-    console.log('Seeding Reservations & Bills...');
+    // Seed Reservations & Bills & Service_Records
+    console.log('Seeding Reservations, Bills & Service Records...');
     await connection.query(`
       INSERT INTO Reservation (Reservation_ID, Guest_ID, Room_ID, Booking_Date, Check_In_Date, Check_Out_Date, Reservation_Status, Number_of_Guests) VALUES
       (1, 1, 3, '2026-07-20', '2026-08-01', '2026-08-05', 'Checked In', 2),
@@ -153,23 +149,17 @@ async function initDb() {
     await connection.query(`UPDATE Room SET Availability_Status = 'Reserved' WHERE Room_ID = 2;`);
 
     await connection.query(`
-      INSERT INTO Service_Record (Service_Record_ID, Guest_ID, Service_ID, Service_Date, Quantity, Charge) VALUES
-      (1, 1, 2, '2026-08-02', 1, 3500.00),
-      (2, 1, 4, '2026-08-02', 2, 2400.00);
+      INSERT INTO Bill (Bill_ID, Reservation_ID, Total_Amount, Taxes, Discounts, Payment_Method, Payment_Status) VALUES
+      (1, 1, 65900.00, 0.00, 2000.00, 'Card', 'Paid');
     `);
 
     await connection.query(`
-      INSERT INTO Bill (Bill_ID, Reservation_ID, Billing_Date, Total_Amount, Taxes, Discounts, Final_Amount, Payment_Method, Payment_Status) VALUES
-      (1, 1, '2026-08-05', 65900.00, 6590.00, 2000.00, 70490.00, 'Card', 'Paid');
+      INSERT INTO Service_Record (Service_Record_ID, Guest_ID, Service_ID, Bill_ID, Service_Date, Quantity, Charge) VALUES
+      (1, 1, 2, 1, '2026-08-02', 1, 3500.00),
+      (2, 1, 4, 1, '2026-08-02', 2, 2400.00);
     `);
 
-    await connection.query(`
-      INSERT INTO Bill_Item (Bill_ID, Bill_Item_No, Service_Record_ID, Quantity, Charge) VALUES
-      (1, 1, 1, 1, 3500.00),
-      (1, 2, 2, 2, 2400.00);
-    `);
-
-    console.log('Database successfully cleaned and re-seeded with Username support!');
+    console.log('Database successfully initialized according to CSE-303 ERD specification!');
     await connection.end();
   } catch (error) {
     console.error('Database Initialization Failed:', error.message);

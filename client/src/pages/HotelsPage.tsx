@@ -4,6 +4,7 @@ import api from '../services/api';
 import { Hotel, Room } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { HotelCardSkeleton } from '../components/SkeletonLoader';
+import { GuestBookingModal } from '../components/GuestBookingModal';
 import { 
   Plus, 
   PencilSimple, 
@@ -24,6 +25,10 @@ export const HotelsPage: React.FC = () => {
   const [hotels, setHotels] = useState<(Hotel & { rooms?: Room[] })[]>([]);
   const [loading, setLoading] = useState(true);
   const [btnLoading, setBtnLoading] = useState<number | null>(null);
+
+  // Guest Booking Modal State
+  const [guestBookingModalOpen, setGuestBookingModalOpen] = useState(false);
+  const [selectedHotelForBooking, setSelectedHotelForBooking] = useState<number | null>(null);
 
   const initialDestination = searchParams.get('destination') || '';
   const [search, setSearch] = useState(initialDestination);
@@ -130,11 +135,14 @@ export const HotelsPage: React.FC = () => {
     setTimeout(() => {
       if (!token) {
         navigate(`/register?hotelId=${hotelId}`);
+      } else if (user?.role === 'Guest') {
+        setSelectedHotelForBooking(hotelId);
+        setGuestBookingModalOpen(true);
       } else {
         navigate(`/reservations/new?hotelId=${hotelId}`);
       }
       setBtnLoading(null);
-    }, 300);
+    }, 200);
   };
 
   const filteredHotels = hotels.filter(h => {
@@ -305,8 +313,6 @@ export const HotelsPage: React.FC = () => {
                       <div className="text-lg font-extrabold font-mono text-acc-950 dark:text-acc-50">
                         BDT {(saleRate * 2).toLocaleString()}
                       </div>
-                      
-                      <div className="text-[9px] text-acc-400 font-mono">+ BDT {((saleRate * 2) * 0.1).toLocaleString()} taxes</div>
 
                       <div className="pt-2 flex justify-end gap-2">
                         {canEdit && (
@@ -431,6 +437,14 @@ export const HotelsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Guest Room Reservation Modal */}
+      <GuestBookingModal
+        isOpen={guestBookingModalOpen}
+        onClose={() => setGuestBookingModalOpen(false)}
+        initialHotelId={selectedHotelForBooking}
+        onBookingSuccess={() => navigate('/guest-dashboard')}
+      />
 
     </div>
   );

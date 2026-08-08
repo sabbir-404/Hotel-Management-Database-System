@@ -95,16 +95,26 @@ export const Navbar: React.FC = () => {
           <span className="hidden sm:inline">Hotels</span>
         </Link>
 
-        {/* Customer Dashboard Link */}
-        <Link
-          to="/my-bookings"
-          className={`px-2.5 py-1.5 rounded text-xs font-mono flex items-center gap-1.5 transition-colors ${
-            isStaff ? 'text-acc-300 hover:bg-acc-850' : 'text-brand-600 dark:text-brand-400 font-bold hover:bg-brand-500/10'
-          }`}
-        >
-          <CalendarCheck size={16} />
-          <span>My Bookings</span>
-        </Link>
+        {/* Guest Portal Navigation Link */}
+        {user?.role === 'Guest' ? (
+          <Link
+            to="/guest-dashboard"
+            className="px-3 py-1.5 bg-brand-500 text-acc-950 font-bold text-xs rounded font-mono flex items-center gap-1.5 shadow"
+          >
+            <SquaresFour size={16} />
+            <span>My Guest Portal</span>
+          </Link>
+        ) : (
+          <Link
+            to="/my-bookings"
+            className={`px-2.5 py-1.5 rounded text-xs font-mono flex items-center gap-1.5 transition-colors ${
+              isStaff ? 'text-acc-300 hover:bg-acc-850' : 'text-brand-600 dark:text-brand-400 font-bold hover:bg-brand-500/10'
+            }`}
+          >
+            <CalendarCheck size={16} />
+            <span>My Bookings</span>
+          </Link>
+        )}
 
         {/* Staff-Only Control Dashboard & Role Switcher */}
         {isStaff ? (

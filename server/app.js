@@ -52,6 +52,16 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`=======================================================`);
   });
 
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`=======================================================`);
+      console.warn(` ⚠️  Port ${PORT} is already in use by a running process.`);
+      console.warn(` An existing backend server is already active on port ${PORT}.`);
+      console.warn(`=======================================================`);
+      process.exit(1);
+    }
+  });
+
   server.keepAliveTimeout = 65000;
   server.headersTimeout = 66000;
 }
