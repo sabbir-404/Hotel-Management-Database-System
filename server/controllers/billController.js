@@ -134,13 +134,6 @@ exports.generateBill = async (req, res, next) => {
       return res.status(400).json({ error: 'Reservation ID is required' });
     }
 
-    // Check if bill already exists for this reservation
-    const [existing] = await connection.query('SELECT * FROM Bill WHERE Reservation_ID = ?', [Reservation_ID]);
-    if (existing.length > 0) {
-      await connection.rollback();
-      return res.status(400).json({ error: 'Bill already generated for this reservation', Bill_ID: existing[0].Bill_ID });
-    }
-
     // Get Reservation details
     const [resDetails] = await connection.query(`
       SELECT r.*, rm.Nightly_Rate, DATEDIFF(r.Check_Out_Date, r.Check_In_Date) as Total_Nights
@@ -158,12 +151,12 @@ exports.generateBill = async (req, res, next) => {
     const nights = Math.max(1, reservation.Total_Nights || 1);
     const roomCharge = parseFloat(reservation.Nightly_Rate) * nights;
 
-    // Get all unbilled service records for this guest
+    // Get all unbilled or existing service records for this guest/reservation
     const [serviceRecords] = await connection.query(`
       SELECT sr.*, s.Service_Type
       FROM Service_Record sr
       JOIN Service s ON sr.Service_ID = s.Service_ID
-      WHERE sr.Guest_ID = ? AND (sr.Bill_ID IS NULL OR sr.Bill_ID = 0)
+      WHERE sr.Guest_ID = ?
     `, [reservation.Guest_ID]);
 
     let totalServiceCharge = 0;
@@ -175,22 +168,38 @@ exports.generateBill = async (req, res, next) => {
     const taxAmount = Taxes !== undefined ? parseFloat(Taxes) : 0;
     const discountAmount = Discounts !== undefined ? parseFloat(Discounts) : 0;
 
-    // Insert into Bill
-    const [billResult] = await connection.query(
-      `INSERT INTO Bill (Reservation_ID, Total_Amount, Taxes, Discounts, Payment_Method, Payment_Status)
-       VALUES (?, ?, ?, ?, ?, 'Paid')`,
-      [
-        Reservation_ID,
-        subtotal,
-        taxAmount,
-        discountAmount,
-        Payment_Method || 'Card'
-      ]
-    );
+    // Check if a bill record already exists for this reservation (e.g. created during in-stay service request)
+    const [existing] = await connection.query('SELECT * FROM Bill WHERE Reservation_ID = ?', [Reservation_ID]);
+    let billId;
 
-    const billId = billResult.insertId;
+    if (existing.length > 0) {
+      billId = existing[0].Bill_ID;
+      await connection.query(
+        `UPDATE Bill SET
+          Total_Amount = ?,
+          Taxes = ?,
+          Discounts = ?,
+          Payment_Method = ?,
+          Payment_Status = 'Paid'
+         WHERE Bill_ID = ?`,
+        [subtotal, taxAmount, discountAmount, Payment_Method || existing[0].Payment_Method || 'Card', billId]
+      );
+    } else {
+      const [billResult] = await connection.query(
+        `INSERT INTO Bill (Reservation_ID, Total_Amount, Taxes, Discounts, Payment_Method, Payment_Status)
+         VALUES (?, ?, ?, ?, ?, 'Paid')`,
+        [
+          Reservation_ID,
+          subtotal,
+          taxAmount,
+          discountAmount,
+          Payment_Method || 'Card'
+        ]
+      );
+      billId = billResult.insertId;
+    }
 
-    // Link Service_Record to this Bill_ID
+    // Link all service records for this guest to this Bill_ID
     if (serviceRecords.length > 0) {
       await connection.query(
         `UPDATE Service_Record SET Bill_ID = ? WHERE Guest_ID = ? AND (Bill_ID IS NULL OR Bill_ID = 0)`,
