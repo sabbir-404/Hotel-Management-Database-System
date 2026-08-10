@@ -60,10 +60,12 @@ export interface Employee {
   Email?: string;
   Address?: string;
   Nationality?: string;
+  Role?: UserRole | string;
   Designation: string;
   Salary: number | string;
   Joining_Date?: string;
   Employment_Status: 'Active' | 'Inactive' | 'On Leave';
+  Username?: string;
   Password?: string;
 }
 

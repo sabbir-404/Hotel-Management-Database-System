@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (username: string, role?: UserRole) => Promise<void>;
+  login: (username: string, password?: string) => Promise<void>;
   guestLogin: (emailOrUsername: string, password: string) => Promise<void>;
   setSession: (token: string, user: User) => void;
   logout: () => void;
@@ -39,17 +39,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(newUser);
   };
 
-  const login = async (username: string, roleOverride?: UserRole) => {
+  const login = async (username: string, password?: string) => {
     try {
-      const response = await api.post('/auth/login', { username, password: 'password' });
+      const response = await api.post('/auth/login', { username, password: password || 'admin123' });
       const { token: jwtToken, user: loggedUser } = response.data;
       
-      const activeUser: User = {
-        ...loggedUser,
-        role: roleOverride || loggedUser.role
-      };
-
-      setSession(jwtToken, activeUser);
+      setSession(jwtToken, loggedUser);
     } catch (err: any) {
       const msg = err.response?.data?.error || (err.code === 'ERR_NETWORK' || !err.response 
         ? 'Cannot connect to backend server (port 5000). Please make sure to run "npm run dev" from the project ROOT folder.'

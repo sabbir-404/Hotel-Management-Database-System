@@ -1,14 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { UserRole } from '../types';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   SignOut, 
   Moon, 
   Sun, 
-  ShieldCheck, 
-  CaretDown,
-  CheckCircle,
   House,
   Bed,
   SquaresFour,
@@ -18,11 +14,10 @@ import {
 } from '@phosphor-icons/react';
 
 export const Navbar: React.FC = () => {
-  const { user, token, logout, switchRole } = useAuth();
+  const { user, token, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isDark, setIsDark] = useState<boolean>(document.documentElement.classList.contains('dark'));
-  const [roleDropdownOpen, setRoleDropdownOpen] = useState<boolean>(false);
 
   const isStaff = user && (user.role === 'Admin' || user.role === 'Manager' || user.role === 'Receptionist');
 
@@ -34,11 +29,6 @@ export const Navbar: React.FC = () => {
       document.documentElement.classList.add('dark');
       setIsDark(true);
     }
-  };
-
-  const handleRoleSelect = (role: UserRole) => {
-    switchRole(role);
-    setRoleDropdownOpen(false);
   };
 
   return (
@@ -116,49 +106,15 @@ export const Navbar: React.FC = () => {
           </Link>
         )}
 
-        {/* Staff-Only Control Dashboard & Role Switcher */}
+        {/* Staff-Only Control Dashboard */}
         {isStaff ? (
-          <>
-            <Link
-              to="/dashboard"
-              className="px-3 py-1.5 bg-brand-500 text-acc-950 font-bold text-xs rounded font-mono flex items-center gap-1.5 shadow"
-            >
-              <SquaresFour size={16} />
-              <span>Admin Dashboard</span>
-            </Link>
-
-            {/* Role Context Switcher (Only visible to staff) */}
-            <div className="relative">
-              <button
-                onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-acc-700 text-xs font-mono bg-acc-900 text-white hover:bg-acc-800 transition-colors"
-              >
-                <ShieldCheck size={14} className="text-emerald-400" />
-                <span>Role: <strong className="text-brand-400 font-semibold">{user.role}</strong></span>
-                <CaretDown size={12} />
-              </button>
-
-              {roleDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-acc-900 border border-acc-700 rounded-md shadow-lg py-1 z-50">
-                  <div className="px-3 py-1.5 text-[10px] uppercase font-mono tracking-wider text-acc-400 border-b border-acc-800">
-                    Switch Staff Context
-                  </div>
-                  {(['Admin', 'Receptionist', 'Manager'] as UserRole[]).map((role) => (
-                    <button
-                      key={role}
-                      onClick={() => handleRoleSelect(role)}
-                      className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-acc-800 ${
-                        user.role === role ? 'font-semibold text-emerald-400 bg-acc-800/50' : 'text-acc-300'
-                      }`}
-                    >
-                      <span>{role}</span>
-                      {user.role === role && <CheckCircle size={14} weight="fill" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
+          <Link
+            to="/dashboard"
+            className="px-3 py-1.5 bg-brand-500 text-acc-950 font-bold text-xs rounded font-mono flex items-center gap-1.5 shadow"
+          >
+            <SquaresFour size={16} />
+            <span>Admin Dashboard</span>
+          </Link>
         ) : null}
 
         {/* Theme Toggle */}

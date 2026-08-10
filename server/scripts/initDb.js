@@ -106,9 +106,9 @@ async function initDb() {
 
     // Seed Employees directly into Employee table (no Person table)
     await connection.query(`
-      INSERT INTO Employee (Employee_ID, Hotel_ID, Full_Name, Designation, Salary, Joining_Date, Employment_Status, Password) VALUES
-      (1, 1, 'Shakib Ahmed', 'General Manager', 120000.00, '2024-03-01', 'Active', 'password'),
-      (2, 1, 'Mahmud Hasan', 'Front Desk Executive', 45000.00, '2024-06-15', 'Active', 'password');
+      INSERT INTO Employee (Employee_ID, Hotel_ID, Full_Name, Role, Designation, Salary, Joining_Date, Employment_Status, Username, Password) VALUES
+      (1, 1, 'System Administrator', 'Admin', 'System Admin', 120000.00, '2024-01-01', 'Active', 'admin', 'admin123'),
+      (2, 1, 'Mahmud Hasan', 'Receptionist', 'Front Desk Executive', 45000.00, '2024-06-15', 'Active', 'receptionist', 'admin123');
     `);
 
     // Seed Rooms across all 6 hotels

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../services/api';
-import { Employee, Hotel } from '../types';
+import { Employee, Hotel, UserRole } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { UserPlus, PencilSimple, Trash, MagnifyingGlass } from '@phosphor-icons/react';
+import { UserPlus, PencilSimple, Trash, MagnifyingGlass, Shield } from '@phosphor-icons/react';
 
 export const EmployeesPage: React.FC = () => {
   const { user } = useAuth();
@@ -18,13 +18,15 @@ export const EmployeesPage: React.FC = () => {
   const [formData, setFormData] = useState({
     First_Name: '',
     Last_Name: '',
+    Username: '',
+    Role: 'Receptionist' as UserRole,
     Phone_Number: '',
     Email: '',
     Password: '',
     Address: '',
     Nationality: 'Bangladeshi',
     Hotel_ID: 1,
-    Designation: 'Receptionist',
+    Designation: 'Front Desk Executive',
     Salary: 45000.00,
     Joining_Date: new Date().toISOString().split('T')[0],
     Employment_Status: 'Active' as Employee['Employment_Status']
@@ -58,13 +60,15 @@ export const EmployeesPage: React.FC = () => {
     setFormData({
       First_Name: '',
       Last_Name: '',
+      Username: '',
+      Role: 'Receptionist',
       Phone_Number: '',
       Email: '',
       Password: '',
       Address: '',
       Nationality: 'Bangladeshi',
       Hotel_ID: hotels[0]?.Hotel_ID || 1,
-      Designation: 'Receptionist',
+      Designation: 'Front Desk Executive',
       Salary: 45000.00,
       Joining_Date: new Date().toISOString().split('T')[0],
       Employment_Status: 'Active'
@@ -75,18 +79,20 @@ export const EmployeesPage: React.FC = () => {
   const openEditModal = (emp: Employee) => {
     setEditingEmployee(emp);
     setFormData({
-      First_Name: emp.First_Name,
-      Last_Name: emp.Last_Name,
+      First_Name: emp.First_Name || '',
+      Last_Name: emp.Last_Name || '',
+      Username: emp.Username || '',
+      Role: (emp.Role as UserRole) || 'Receptionist',
       Phone_Number: emp.Phone_Number || '',
       Email: emp.Email || '',
       Password: '',
       Address: emp.Address || '',
       Nationality: emp.Nationality || 'Bangladeshi',
       Hotel_ID: emp.Hotel_ID,
-      Designation: emp.Designation,
-      Salary: Number(emp.Salary),
+      Designation: emp.Designation || 'Front Desk Executive',
+      Salary: Number(emp.Salary || 45000),
       Joining_Date: emp.Joining_Date ? emp.Joining_Date.split('T')[0] : new Date().toISOString().split('T')[0],
-      Employment_Status: emp.Employment_Status
+      Employment_Status: emp.Employment_Status || 'Active'
     });
     setModalOpen(true);
   };
@@ -118,9 +124,22 @@ export const EmployeesPage: React.FC = () => {
 
   const filteredEmployees = employees.filter(e =>
     `${e.First_Name} ${e.Last_Name}`.toLowerCase().includes(search.toLowerCase()) ||
+    (e.Role && e.Role.toLowerCase().includes(search.toLowerCase())) ||
     e.Designation.toLowerCase().includes(search.toLowerCase()) ||
     (e.Hotel_Name && e.Hotel_Name.toLowerCase().includes(search.toLowerCase()))
   );
+
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'Admin':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border-purple-300 font-bold';
+      case 'Manager':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-300 font-bold';
+      case 'Receptionist':
+      default:
+        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 font-bold';
+    }
+  };
 
   const getStatusBadge = (status: Employee['Employment_Status']) => {
     switch (status) {
@@ -146,17 +165,17 @@ export const EmployeesPage: React.FC = () => {
             Employee & Personnel Directory
           </h1>
           <p className="text-xs text-acc-500 font-mono">
-            Relational MySQL Table: <code>Employee</code>
+            Staff Account Management with System Access Roles (Admin, Receptionist, Manager)
           </p>
         </div>
 
         {canEdit && (
           <button
             onClick={openCreateModal}
-            className="flex items-center gap-2 px-3 py-2 bg-acc-950 hover:bg-acc-800 dark:bg-brand-500 dark:hover:bg-brand-600 text-white dark:text-acc-950 font-semibold text-xs rounded transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-acc-950 hover:bg-acc-800 dark:bg-brand-500 dark:hover:bg-brand-600 text-white dark:text-acc-950 font-semibold text-xs rounded-xl transition-colors"
           >
             <UserPlus size={16} />
-            <span>Add New Employee</span>
+            <span>Add New Staff Account</span>
           </button>
         )}
       </div>
@@ -169,8 +188,8 @@ export const EmployeesPage: React.FC = () => {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search employees by name, designation, or hotel..."
-            className="w-full pl-9 pr-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-200 dark:border-acc-700 rounded text-xs focus:outline-none font-mono"
+            placeholder="Search employees by name, role (Admin, Receptionist, Manager), or hotel..."
+            className="w-full pl-9 pr-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-200 dark:border-acc-700 rounded-xl text-xs focus:outline-none font-mono"
           />
         </div>
       </div>
@@ -183,10 +202,10 @@ export const EmployeesPage: React.FC = () => {
               <tr>
                 <th className="p-3 font-semibold">Staff ID</th>
                 <th className="p-3 font-semibold">Full Name</th>
+                <th className="p-3 font-semibold">System Access Role</th>
                 <th className="p-3 font-semibold">Designation</th>
                 <th className="p-3 font-semibold">Hotel Assignment</th>
                 <th className="p-3 font-semibold">Salary (BDT ৳)</th>
-                <th className="p-3 font-semibold">Joining Date</th>
                 <th className="p-3 font-semibold">Status</th>
                 {canEdit && <th className="p-3 font-semibold text-right">Actions</th>}
               </tr>
@@ -205,14 +224,19 @@ export const EmployeesPage: React.FC = () => {
                   <tr key={e.Employee_ID} className="hover:bg-acc-50 dark:hover:bg-acc-850/50">
                     <td className="p-3 font-bold text-acc-950 dark:text-acc-50">#EMP-{e.Employee_ID}</td>
                     <td className="p-3 font-sans font-semibold text-acc-950 dark:text-acc-100">
-                      {e.First_Name} {e.Last_Name}
+                      <div>{e.First_Name} {e.Last_Name}</div>
+                      {e.Username && <div className="text-[10px] text-acc-500 font-mono">User: @{e.Username}</div>}
                     </td>
-                    <td className="p-3 font-sans font-medium text-acc-900 dark:text-acc-200">{e.Designation}</td>
+                    <td className="p-3">
+                      <span className={`badge-pill border ${getRoleBadge(e.Role || 'Receptionist')}`}>
+                        {e.Role || 'Receptionist'}
+                      </span>
+                    </td>
+                    <td className="p-3 font-sans text-acc-800 dark:text-acc-300">{e.Designation}</td>
                     <td className="p-3">{e.Hotel_Name}</td>
                     <td className="p-3 font-bold text-acc-950 dark:text-acc-50">
                       BDT ৳{Number(e.Salary).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="p-3">{new Date(e.Joining_Date || '').toLocaleDateString()}</td>
                     <td className="p-3">
                       <span className={`badge-pill border ${getStatusBadge(e.Employment_Status)}`}>
                         {e.Employment_Status}
@@ -253,10 +277,28 @@ export const EmployeesPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
           <div className="bg-white dark:bg-acc-900 border border-acc-200 dark:border-acc-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-bold text-acc-950 dark:text-acc-50 border-b border-acc-100 dark:border-acc-800 pb-2">
-              {editingEmployee ? `Edit Employee Record (#EMP-${editingEmployee.Employee_ID})` : 'Add New Staff Member'}
+              {editingEmployee ? `Edit Staff Member (#EMP-${editingEmployee.Employee_ID})` : 'Create New Staff Account'}
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+              
+              {/* System Access Role Select */}
+              <div>
+                <label className="block font-bold text-brand-600 dark:text-brand-400 mb-1 flex items-center gap-1">
+                  <Shield size={14} />
+                  <span>Assign System Access Role *</span>
+                </label>
+                <select
+                  value={formData.Role}
+                  onChange={(e) => setFormData({ ...formData, Role: e.target.value as UserRole })}
+                  className="w-full px-3 py-2 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono font-bold"
+                >
+                  <option value="Admin">Admin (Full Control & System Administration)</option>
+                  <option value="Receptionist">Receptionist (Bookings, Check-In & Guest Billing)</option>
+                  <option value="Manager">Manager (Reports, Audits & Branch Operations)</option>
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-medium mb-1">First Name *</label>
@@ -282,10 +324,35 @@ export const EmployeesPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium mb-1">Phone Number *</label>
+                  <label className="block font-medium mb-1">Login Username</label>
                   <input
                     type="text"
-                    required
+                    value={formData.Username}
+                    onChange={(e) => setFormData({ ...formData, Username: e.target.value })}
+                    placeholder="e.g. jahan_staff"
+                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium mb-1">
+                    Login Password {editingEmployee ? '(Unchanged if blank)' : '*'}
+                  </label>
+                  <input
+                    type="password"
+                    required={!editingEmployee}
+                    value={formData.Password}
+                    onChange={(e) => setFormData({ ...formData, Password: e.target.value })}
+                    placeholder={editingEmployee ? '••••••••' : 'Set Password'}
+                    className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-medium mb-1">Phone Number</label>
+                  <input
+                    type="text"
                     value={formData.Phone_Number}
                     onChange={(e) => setFormData({ ...formData, Phone_Number: e.target.value })}
                     className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono"
@@ -302,20 +369,6 @@ export const EmployeesPage: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block font-medium mb-1">
-                  Account Password {editingEmployee ? '(Leave blank to keep unchanged)' : '*'}
-                </label>
-                <input
-                  type="password"
-                  required={!editingEmployee}
-                  value={formData.Password}
-                  onChange={(e) => setFormData({ ...formData, Password: e.target.value })}
-                  placeholder={editingEmployee ? '••••••••' : 'Set Account Password'}
-                  className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl font-mono"
-                />
-              </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-medium mb-1">Hotel Assignment *</label>
@@ -330,14 +383,14 @@ export const EmployeesPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-medium mb-1">Designation *</label>
+                  <label className="block font-medium mb-1">Job Designation *</label>
                   <input
                     type="text"
                     required
                     value={formData.Designation}
                     onChange={(e) => setFormData({ ...formData, Designation: e.target.value })}
                     className="w-full px-3 py-1.5 bg-acc-50 dark:bg-acc-800 border border-acc-300 dark:border-acc-700 rounded-xl"
-                    placeholder="e.g. Receptionist, Manager"
+                    placeholder="e.g. Front Desk Officer"
                   />
                 </div>
               </div>
@@ -390,7 +443,7 @@ export const EmployeesPage: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 bg-brand-500 text-acc-950 font-bold text-xs rounded-xl"
                 >
-                  Save Employee
+                  Save Staff Member
                 </button>
               </div>
             </form>

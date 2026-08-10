@@ -19,7 +19,7 @@ The application features **20 dedicated pages** categorized into Public Customer
 | **`/`** | [`HomePage.tsx`](file:///f:/Repository/Hotel-Management-Database-System/client/src/pages/HomePage.tsx) | **Landing & Search Portal**: Hero banner with destination selector (Dhaka, Cox's Bazar, Sylhet, Chittagong, Rangamati, Sreemangal), check-in date picker, featured hotel carousel, customer reviews, and hotel amenity highlights. |
 | **`/register`** | [`RegisterPage.tsx`](file:///f:/Repository/Hotel-Management-Database-System/client/src/pages/RegisterPage.tsx) | **Guest Self-Registration**: Customer signup form requiring Full Name, Username, Password (with live match validation), Phone Number, Email, Address, Nationality, and NID / Passport Number. Automatically logs in newly registered guests and routes to `/guest-dashboard`. |
 | **`/guest-login`** | [`GuestLoginPage.tsx`](file:///f:/Repository/Hotel-Management-Database-System/client/src/pages/GuestLoginPage.tsx) | **Customer Sign-In**: Dedicated guest portal sign-in page supporting authentication via Email / Username / Phone Number and Password or Identification Number. |
-| **`/login`** | [`LoginPage.tsx`](file:///f:/Repository/Hotel-Management-Database-System/client/src/pages/LoginPage.tsx) | **Staff Portal Sign-In**: Operations login page for hotel staff (`Admin`, `Manager`, `Receptionist`) with quick one-click demo credentials. |
+| **`/login`** | [`LoginPage.tsx`](file:///f:/Repository/Hotel-Management-Database-System/client/src/pages/LoginPage.tsx) | **Staff Portal Sign-In**: Operations login page for hotel staff using assigned staff username & password (`admin` / `admin123`). |
 | **`/hotels`** | [`HotelsPage.tsx`](file:///f:/Repository/Hotel-Management-Database-System/client/src/pages/HotelsPage.tsx) | **Hotel Branch Directory**: Explore hotel branches across Bangladesh with city filters, star rating badges, image cards, and direct room booking triggers (`GuestBookingModal` for guests or 6-Step Admin Wizard for staff). |
 | **`/rooms`** | [`RoomsPage.tsx`](file:///f:/Repository/Hotel-Management-Database-System/client/src/pages/RoomsPage.tsx) | **Room Showcase & Inventory**: View available rooms with regular nightly rates, crossed-out discounted sale rates (BDT ৳), capacity badges, availability status indicators (`Available`, `Reserved`, `Occupied`, `Maintenance`), and admin room creation modal. |
 
@@ -47,7 +47,7 @@ The application features **20 dedicated pages** categorized into Public Customer
 | **`/reservations/check-out`** | [`CheckOutPage.tsx`](file:///f:/Repository/Hotel-Management-Database-System/client/src/pages/CheckOutPage.tsx) | **Express Check-Out Desk**: Departure manager for checking out guests, automatically generating the final BDT bill and returning room status to `Available`. |
 | **`/services`** | [`ServicesPage.tsx`](file:///f:/Repository/Hotel-Management-Database-System/client/src/pages/ServicesPage.tsx) | **Hotel Service Desk**: Catalog of hotel services (Express Laundry, Luxury Spa, Airport Transfer, Gourmet Room Service) with price management and a service assignment modal for ordering services to active guest stays. |
 | **`/billing`** | [`BillingPage.tsx`](file:///f:/Repository/Hotel-Management-Database-System/client/src/pages/BillingPage.tsx) | **Billing & Invoices**: Master billing ledger displaying invoice numbers, room charges, service charges, taxes, discounts, final BDT totals, payment status (`Paid`, `Pending`, `Cancelled`), and printable invoice view. |
-| **`/employees`** | [`EmployeesPage.tsx`](file:///f:/Repository/Hotel-Management-Database-System/client/src/pages/EmployeesPage.tsx) | **Employee HR Management**: Staff directory for managing hotel personnel across branches with designation, salary (BDT ৳), joining date, employment status (`Active`, `Inactive`, `On Leave`), and add/edit employee modals. |
+| **`/employees`** | [`EmployeesPage.tsx`](file:///f:/Repository/Hotel-Management-Database-System/client/src/pages/EmployeesPage.tsx) | **Employee HR Management**: Staff directory for managing hotel personnel with System Access Roles (`Admin`, `Receptionist`, `Manager`), username credentials, password setup, salary (BDT ৳), joining date, employment status (`Active`, `Inactive`, `On Leave`), and add/edit employee modals. |
 | **`/reports`** | [`ReportsPage.tsx`](file:///f:/Repository/Hotel-Management-Database-System/client/src/pages/ReportsPage.tsx) | **System Analytics & Reports**: Tabbed report suite providing data insights on Highest-Spending Guests, Upcoming Check-Ins, Hotel Occupancy %, and Employee Salary Expenses. |
 | **`/settings`** | [`SettingsPage.tsx`](file:///f:/Repository/Hotel-Management-Database-System/client/src/pages/SettingsPage.tsx) | **System Settings**: Configuration page for tax rates, default currency (BDT ৳), stay policies, notification preferences, and database connectivity health status. |
 
@@ -79,7 +79,7 @@ EMPLOYEE                            RESERVATION
 ### Core Schema Tables:
 1. **`Hotel`**: `Hotel_ID` (PK), `Hotel_Name`, `Address`, `City`, `Contact_Number`, `Star_Rating`.
 2. **`Guest`**: `Guest_ID` (PK AUTO_INCREMENT), `Full_Name`, `Phone_Number`, `Email`, `Address`, `Nationality`, `Identification_Number`, `Username`, `Password`.
-3. **`Employee`**: `Employee_ID` (PK AUTO_INCREMENT), `Hotel_ID` (FK), `Full_Name`, `Designation`, `Salary`, `Joining_Date`, `Employment_Status`.
+3. **`Employee`**: `Employee_ID` (PK AUTO_INCREMENT), `Hotel_ID` (FK), `Full_Name`, `Role`, `Designation`, `Salary`, `Joining_Date`, `Employment_Status`, `Phone_Number`, `Email`, `Username`, `Password`.
 4. **`Room`**: `Room_ID` (PK AUTO_INCREMENT), `Hotel_ID` (FK), `Room_Number`, `Room_Type`, `Floor_Number`, `Capacity`, `Nightly_Rate`, `Availability_Status`.
 5. **`Reservation`**: `Reservation_ID` (PK AUTO_INCREMENT), `Guest_ID` (FK), `Room_ID` (FK), `Booking_Date`, `Check_In_Date`, `Check_Out_Date`, `Reservation_Status`, `Number_of_Guests`.
 6. **`Service`**: `Service_ID` (PK AUTO_INCREMENT), `Service_Type`.
@@ -142,18 +142,25 @@ Open your browser and navigate to **`http://localhost:3000`**.
 
 ---
 
-## 🔑 Demo Login Credentials
+## 🔑 Default Credentials & User Creation
 
 ### 👤 Customer Guest Account
 - **Access Route**: `/guest-login`
 - **Username / Phone / Email**: `tanvir` or `+8801700112233`
 - **Password**: `password`
 
-### 🛡️ Staff Admin Accounts
+### 🛡️ Default Staff System Admin Account
 - **Access Route**: `/login`
-- **Admin**: Username: `admin` | Password: `password` (Full System Control)
-- **Receptionist**: Username: `receptionist` | Password: `password` (Bookings & Check-In/Out)
-- **Manager**: Username: `manager` | Password: `password` (Reports & Audits)
+- **Admin Username**: `admin`
+- **Admin Password**: `admin123`
+
+### 👥 Staff User Creation & Role Assignment
+- System administrators can create additional staff accounts via the **Employee Directory (`/employees`)**.
+- When creating a staff member, select a **System Access Role**:
+  - **`Admin`**: Full System Control & System Administration.
+  - **`Receptionist`**: Bookings, Check-In/Out & Guest Billing.
+  - **`Manager`**: Business Intelligence Reports, Audits & Branch Operations.
+- Assign a **Username** and **Password** to allow the employee to log into the Staff Portal (`/login`).
 
 ---
 

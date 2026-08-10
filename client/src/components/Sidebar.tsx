@@ -11,8 +11,6 @@ import {
   CalendarCheck, 
   BellRinging, 
   Receipt, 
-  ChartLineUp,
-  Gear,
   CaretDown,
   ShieldCheck
 } from '@phosphor-icons/react';
@@ -206,36 +204,6 @@ export const Sidebar: React.FC = () => {
               <span>Employees</span>
             </NavLink>
           )}
-
-          {(currentRole === 'Admin' || currentRole === 'Manager') && (
-            <NavLink
-              to="/reports"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded font-medium transition-all ${
-                  isActive
-                    ? 'bg-brand-500 text-acc-950 font-extrabold shadow'
-                    : 'text-acc-300 hover:bg-acc-850 hover:text-white'
-                }`
-              }
-            >
-              <ChartLineUp size={16} />
-              <span>System Reports</span>
-            </NavLink>
-          )}
-
-          <NavLink
-            to="/settings"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded font-medium transition-all ${
-                isActive
-                  ? 'bg-brand-500 text-acc-950 font-extrabold shadow'
-                  : 'text-acc-300 hover:bg-acc-850 hover:text-white'
-              }`
-            }
-          >
-            <Gear size={16} />
-            <span>Settings</span>
-          </NavLink>
 
         </nav>
       </div>

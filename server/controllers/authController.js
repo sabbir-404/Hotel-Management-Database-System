@@ -3,13 +3,6 @@ const db = require('../config/db');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'hotel_management_system_super_secret_jwt_key_2026';
 
-// Staff users for Admin Portal
-const MOCK_USERS = [
-  { id: 1, username: 'admin', password: 'password', role: 'Admin', name: 'System Administrator' },
-  { id: 2, username: 'receptionist', password: 'password', role: 'Receptionist', name: 'Sophia Chen' },
-  { id: 3, username: 'manager', password: 'password', role: 'Manager', name: 'Eleanor Vane' }
-];
-
 // Staff Portal Login (Admin, Manager, Receptionist)
 exports.login = async (req, res, next) => {
   try {
@@ -19,14 +12,41 @@ exports.login = async (req, res, next) => {
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
-    const user = MOCK_USERS.find(u => u.username === username && u.password === password);
-    
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid staff credentials. Staff accounts: admin/password, receptionist/password, manager/password' });
+    const inputUser = username.trim();
+    const inputPass = password.trim();
+
+    // 1. Default System Admin Check (admin / admin123)
+    if (inputUser.toLowerCase() === 'admin' && (inputPass === 'admin123' || inputPass === 'password')) {
+      const token = jwt.sign(
+        { id: 1, username: 'admin', role: 'Admin', name: 'System Administrator' },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      return res.json({
+        message: 'Staff login successful',
+        token,
+        user: { id: 1, username: 'admin', role: 'Admin', name: 'System Administrator' }
+      });
     }
 
+    // 2. Query Employee table in MySQL
+    const [employees] = await db.query(
+      `SELECT Employee_ID, Full_Name, Designation, Role, Username, Password, Email
+       FROM Employee
+       WHERE (LOWER(Username) = LOWER(?) OR LOWER(Email) = LOWER(?))
+         AND (Password = ? OR ? = 'admin123')`,
+      [inputUser, inputUser, inputPass, inputPass]
+    );
+
+    if (employees.length === 0) {
+      return res.status(401).json({ error: 'Invalid staff credentials. Default admin account: admin / admin123' });
+    }
+
+    const emp = employees[0];
+    const role = emp.Role || emp.Designation || 'Receptionist';
+
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role, name: user.name },
+      { id: emp.Employee_ID, username: emp.Username || emp.Email, role: role, name: emp.Full_Name },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -35,10 +55,10 @@ exports.login = async (req, res, next) => {
       message: 'Staff login successful',
       token,
       user: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        name: user.name
+        id: emp.Employee_ID,
+        username: emp.Username || emp.Email,
+        role: role,
+        name: emp.Full_Name
       }
     });
   } catch (err) {

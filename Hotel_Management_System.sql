@@ -35,10 +35,14 @@ CREATE TABLE Employee (
     Employee_ID INT AUTO_INCREMENT PRIMARY KEY,
     Hotel_ID INT NOT NULL,
     Full_Name VARCHAR(100) NOT NULL,
+    Role VARCHAR(50) DEFAULT 'Receptionist',
     Designation VARCHAR(50),
     Salary DECIMAL(10,2),
     Joining_Date DATE,
     Employment_Status VARCHAR(20) DEFAULT 'Active' CHECK (Employment_Status IN ('Active', 'Inactive', 'On Leave')),
+    Phone_Number VARCHAR(20) UNIQUE,
+    Email VARCHAR(100) UNIQUE,
+    Username VARCHAR(100) UNIQUE,
     Password VARCHAR(255),
     CONSTRAINT fk_employee_hotel FOREIGN KEY (Hotel_ID) REFERENCES Hotel(Hotel_ID)
 );
